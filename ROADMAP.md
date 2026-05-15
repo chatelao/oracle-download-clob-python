@@ -17,9 +17,9 @@ This roadmap outlines the implementation plan for the CLOB Download and Upload T
 - ✅ Define project concept and business use cases.
 - ✅ Define detailed technical design and architecture.
 - ✅ Establish a robust CI/CD pipeline and project structure.
-- ⏳ Implement high-performance CLOB download using GTT Join strategy.
-- ⏳ Implement reliable CLOB upload from local files.
-- ⏳ Provide a user-friendly CLI for data operations.
+- ✅ Implement high-performance CLOB download using GTT Join strategy.
+- ✅ Implement reliable CLOB upload from local files.
+- ✅ Provide a user-friendly CLI for data operations.
 
 ---
 
@@ -51,7 +51,7 @@ Building the functional logic of the individual modules.
 
 - [x] **Input Manager**: CSV parsing and ID validation logic ✅ 2026-05-15
 - [x] **File System Manager**: Directory management and file matching ✅ 2026-05-15
-- [ ] **Oracle Connector**: 🚧
+- [x] **Oracle Connector**: ✅ 2026-05-15
     - [x] Connection lifecycle management ✅ 2026-05-15
     - [x] Global Temporary Table (GTT) creation and population ✅ 2026-05-15
     - [x] Join-based fetch logic ✅ 2026-05-15
