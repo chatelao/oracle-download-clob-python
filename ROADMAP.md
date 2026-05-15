@@ -49,8 +49,8 @@ Defining interfaces early to allow for potential parallel development and clear 
 ### Phase 3: Core Component Implementation
 Building the functional logic of the individual modules.
 
-- [ ] **Input Manager**: CSV parsing and ID validation logic ⏳
-- [ ] **File System Manager**: Directory management and file matching ⏳
+- [x] **Input Manager**: CSV parsing and ID validation logic ✅ 2026-05-15
+- [x] **File System Manager**: Directory management and file matching ✅ 2026-05-15
 - [ ] **Oracle Connector**: 🚧
     - [ ] Connection lifecycle management ⏳
     - [ ] Global Temporary Table (GTT) creation and population ⏳
