@@ -52,10 +52,10 @@ Building the functional logic of the individual modules.
 - [x] **Input Manager**: CSV parsing and ID validation logic ✅ 2026-05-15
 - [x] **File System Manager**: Directory management and file matching ✅ 2026-05-15
 - [ ] **Oracle Connector**: 🚧
-    - [ ] Connection lifecycle management ⏳
+    - [x] Connection lifecycle management ✅ 2026-05-15
     - [ ] Global Temporary Table (GTT) creation and population ⏳
     - [ ] Join-based fetch logic ⏳
-- [ ] **CLOB Processor**: Streaming logic for reading/writing LOBs to/from files ⏳
+- [x] **CLOB Processor**: Streaming logic for reading/writing LOBs to/from files ✅ 2026-05-15
 
 ### Phase 4: Orchestration & CLI Development
 Integrating components and exposing them via the command-line interface.
