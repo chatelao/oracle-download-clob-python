@@ -57,9 +57,8 @@ def test_full_download_upload_cycle(orchestrator, db_config, tmp_path):
 
     # Let's assume Orchestrator needs to be told about the config.
     # For this test, we'll manually connect the connector.
-    connector.connect(db_config)
     try:
-        orch.download_mode(csv_path, output_dir)
+        orch.download_mode(csv_path, output_dir, db_config)
 
         # Verify files were downloaded
         assert (output_dir / "1.txt").exists()
@@ -70,7 +69,7 @@ def test_full_download_upload_cycle(orchestrator, db_config, tmp_path):
         # 3. Modify a file and Upload it back
         (output_dir / "1.txt").write_text("Updated content for ID 1")
 
-        orch.upload_mode(csv_path, output_dir)
+        orch.upload_mode(csv_path, output_dir, db_config)
 
         # 4. Verify the update in the database
         connector.create_gtt(["1"])
