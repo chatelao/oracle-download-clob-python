@@ -1,12 +1,51 @@
 from pathlib import Path
+from src.input_manager import InputManager
+from src.oracle_connector import OracleConnector, DBConfig
+from src.clob_processor import CLOBProcessor
+from src.fs_manager import FSManager
 
 class Orchestrator:
     """High-level execution flow for Download and Upload modes."""
 
-    def download_mode(self, csv_path: Path, output_dir: Path):
-        """Orchestrates UC-1."""
-        pass
+    def __init__(self,
+                 input_manager: InputManager,
+                 db_connector: OracleConnector,
+                 clob_processor: CLOBProcessor,
+                 fs_manager: FSManager):
+        self.input_manager = input_manager
+        self.db_connector = db_connector
+        self.clob_processor = clob_processor
+        self.fs_manager = fs_manager
 
-    def upload_mode(self, csv_path: Path, input_dir: Path):
+    def download_mode(self, csv_path: Path, output_dir: Path, db_config: DBConfig):
+        """Orchestrates UC-1."""
+        ids = self.input_manager.load_ids(csv_path)
+        if not ids:
+            return
+
+        self.db_connector.connect(db_config)
+        try:
+            self.db_connector.create_gtt(ids)
+            self.fs_manager.ensure_directory(output_dir)
+
+            for id_val, clob_lob in self.db_connector.fetch_clobs_join():
+                target_path = output_dir / f"{id_val}.txt"
+                self.clob_processor.stream_to_file(clob_lob, target_path)
+        finally:
+            self.db_connector.close()
+
+    def upload_mode(self, csv_path: Path, input_dir: Path, db_config: DBConfig):
         """Orchestrates UC-2."""
-        pass
+        ids = self.input_manager.load_ids(csv_path)
+        if not ids:
+            return
+
+        self.db_connector.connect(db_config)
+        try:
+            for id_val in ids:
+                file_path = input_dir / f"{id_val}.txt"
+                if file_path.exists():
+                    content = self.clob_processor.read_from_file(file_path)
+                    self.db_connector.update_clob(id_val, content)
+        finally:
+            self.db_connector.close()

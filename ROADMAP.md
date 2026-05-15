@@ -8,8 +8,8 @@ This roadmap outlines the implementation plan for the CLOB Download and Upload T
 | :--- | :--- | :--- |
 | Phase 1 | Project Foundation & CI/CD Setup | ✅ |
 | Phase 2 | Technical Interface Definitions | ✅ |
-| Phase 3 | Core Component Implementation | ⏳ |
-| Phase 4 | Orchestration & CLI Development | ⏳ |
+| Phase 3 | Core Component Implementation | ✅ |
+| Phase 4 | Orchestration & CLI Development | ✅ |
 | Phase 5 | Documentation & Finalization | ⏳ |
 
 ## Goals
@@ -60,12 +60,12 @@ Building the functional logic of the individual modules.
 ### Phase 4: Orchestration & CLI Development
 Integrating components and exposing them via the command-line interface.
 
-- [ ] **Orchestrator Engine**: ⏳
-    - [ ] Implement Download mode flow (UC-1) ⏳
-    - [ ] Implement Upload mode flow (UC-2) ⏳
-- [ ] **CLI Development**: ⏳
-    - [ ] Implement `click` commands and subcommands ⏳
-    - [ ] Integrate logging and error handling ⏳
+- [x] **Orchestrator Engine**: ✅ 2026-05-15
+    - [x] Implement Download mode flow (UC-1) ✅ 2026-05-15
+    - [x] Implement Upload mode flow (UC-2) ✅ 2026-05-15
+- [x] **CLI Development**: ✅ 2026-05-15
+    - [x] Implement `click` commands and subcommands ✅ 2026-05-15
+    - [x] Integrate logging and error handling ✅ 2026-05-15
 
 ### Phase 5: Documentation & Finalization
 Ensuring the project is well-documented and meets all quality standards.
