@@ -16,7 +16,7 @@ folder "Local Storage" as Storage
 CSV --> Input : read IDs
 Input --> Orchestrator : ID list
 Orchestrator --> DBConnector : connect/query
-DBConnector <--> DB : SQL / CLOB data
+DBConnector <-> DB : SQL / CLOB data
 DBConnector --> CLOBProcessor : stream data
 CLOBProcessor --> FSManager : write/read data
 FSManager <--> Storage : files
