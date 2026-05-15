@@ -6,7 +6,7 @@ This roadmap outlines the implementation plan for the CLOB Download and Upload T
 
 | Phase | Description | Status |
 | :--- | :--- | :--- |
-| Phase 1 | Project Foundation & CI/CD Setup | 🚧 |
+| Phase 1 | Project Foundation & CI/CD Setup | ✅ |
 | Phase 2 | Technical Interface Definitions | ⏳ |
 | Phase 3 | Core Component Implementation | ⏳ |
 | Phase 4 | Orchestration & CLI Development | ⏳ |
@@ -16,7 +16,7 @@ This roadmap outlines the implementation plan for the CLOB Download and Upload T
 
 - ✅ Define project concept and business use cases.
 - ✅ Define detailed technical design and architecture.
-- 🚧 Establish a robust CI/CD pipeline and project structure.
+- ✅ Establish a robust CI/CD pipeline and project structure.
 - ⏳ Implement high-performance CLOB download using GTT Join strategy.
 - ⏳ Implement reliable CLOB upload from local files.
 - ⏳ Provide a user-friendly CLI for data operations.
@@ -32,10 +32,10 @@ Focuses on establishing the development environment and automated testing pipeli
 - [x] Create `TOP_ARCHITECTURE.puml` 2024-05-15
 - [x] Initialize repository structure (`src/`, `test/`, `specification/`, `build/`) 2024-05-15
 - [x] Create `ROADMAP.md` 2024-05-15
-- [ ] Implement `src/install.sh` for build tool dependencies ⏳
-- [ ] Implement `test/install.sh` for testing tool dependencies ⏳
-- [ ] Configure GitHub Actions workflow for CI/CD ⏳
-- [ ] Setup initial `pytest` configuration ⏳
+- [x] Implement `src/install.sh` for build tool dependencies ✅ 2024-05-16
+- [x] Implement `test/install.sh` for testing tool dependencies ✅ 2024-05-16
+- [x] Configure GitHub Actions workflow for CI/CD ✅ 2024-05-16
+- [x] Setup initial `pytest` configuration ✅ 2024-05-16
 
 ### Phase 2: Technical Interface Definitions
 Defining interfaces early to allow for potential parallel development and clear contract-based implementation.
