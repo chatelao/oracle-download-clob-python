@@ -1,0 +1,39 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('src/install.sh', 'test/install.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install production dependencies
+        run: ./src/install.sh
+
+      - name: Install testing dependencies
+        run: ./test/install.sh
+
+      - name: Verify project structure
+        run: python3 test/verify_project.py
+
+      - name: Run tests
+        run: pytest
