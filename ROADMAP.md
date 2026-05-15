@@ -53,8 +53,8 @@ Building the functional logic of the individual modules.
 - [x] **File System Manager**: Directory management and file matching ✅ 2026-05-15
 - [ ] **Oracle Connector**: 🚧
     - [x] Connection lifecycle management ✅ 2026-05-15
-    - [ ] Global Temporary Table (GTT) creation and population ⏳
-    - [ ] Join-based fetch logic ⏳
+    - [x] Global Temporary Table (GTT) creation and population ✅ 2026-05-15
+    - [x] Join-based fetch logic ✅ 2026-05-15
 - [x] **CLOB Processor**: Streaming logic for reading/writing LOBs to/from files ✅ 2026-05-15
 
 ### Phase 4: Orchestration & CLI Development
