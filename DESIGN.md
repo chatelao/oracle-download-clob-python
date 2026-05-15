@@ -29,9 +29,7 @@ The following technologies have been selected for the implementation, production
 ## Detailed Architecture
 
 ### Component Overview
-![Top Architecture](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/user/repo/main/TOP_ARCHITECTURE.puml)
-
-*(Note: The link above is a placeholder and should be updated with the actual raw URL of the .puml file once pushed to the repository.)*
+![Top Architecture](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/chatelao/oracle-download-clob-python/main/TOP_ARCHITECTURE.puml)
 
 ### Technical Interfaces
 
