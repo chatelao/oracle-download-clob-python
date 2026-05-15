@@ -1,0 +1,24 @@
+@startuml
+!theme plain
+
+package "CLOB Tool" {
+    [Orchestrator Engine] as Orchestrator
+    [Input Manager] as Input
+    [Oracle Database Connector] as DBConnector
+    [CLOB Processor] as CLOBProcessor
+    [File System Manager] as FSManager
+}
+
+database "Oracle DB" as DB
+file "ID CSV" as CSV
+folder "Local Storage" as Storage
+
+CSV --> Input : read IDs
+Input --> Orchestrator : ID list
+Orchestrator --> DBConnector : connect/query
+DBConnector <--> DB : SQL / CLOB data
+DBConnector --> CLOBProcessor : stream data
+CLOBProcessor --> FSManager : write/read data
+FSManager <--> Storage : files
+
+@enduml
