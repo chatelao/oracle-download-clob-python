@@ -24,7 +24,7 @@ Allow to download and upload CLOB fields from/to files, based on a .csv list of 
 - It does contain precise implementation choices.
 - Every major choice is first drawn out as three alternatives, the best one is chosen and the ohter, discarded ones kept in summary in the last chapter of the concept.
 - It contains a detailed architecture of all components and their technical interfaces.
-- Included the TOP_ARCHITECTURE.puml` as dynamic-rendering image as soon as available.
+- Included the `TOP_ARCHITECTURE.puml` as dynamic-rendering image as soon as available.
 
 # `ROADMAP.md` handling
 - The `ROADMAP.md` is the final plan to implement the `CONCEPT.md` and `DESIGN.md` to achive the top goal
