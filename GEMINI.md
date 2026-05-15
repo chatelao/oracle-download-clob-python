@@ -1,5 +1,5 @@
 # Goal
-Allow to download and upload CLOB fields from/to files, based on a .csv list.
+Allow to download and upload CLOB fields from/to files, based on a .csv list of ids to use in the WHERE / filter clauses.
 
 # Structure
 - `CONCEPT.md`: The overall structure of the product, including Business & Use Cases as well as the High-Level Architecture.
