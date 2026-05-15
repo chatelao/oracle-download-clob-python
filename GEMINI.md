@@ -44,7 +44,6 @@ Allow to download and upload CLOB fields from/to files, based on a .csv list of 
 - The finished tasks are linked to the corresponding issue and timestamped at the end of the line.
 
 # HOWTO
-- Assume a running vLLM on vast.ai
 - Keep `src/install.sh` to install all tools to build the application (test only tools, see below)
 - Used “ReadTheDocs.org” (RTD) for documentation publishing from main branch
 
