@@ -131,7 +131,7 @@ jobs:
       if: steps.cache-docker-images.outputs.cache-hit != 'true'
       run: |
         mkdir -p /tmp/docker-images
-        docker save container-registry.oracle.com/database/free:latest ollama/ollama:latest -o /tmp/docker-images/images.tar
+        docker save container-registry.oracle.com/database/free:latest -o /tmp/docker-images/images.tar
 
     - name: Verify project structure
       run: |
@@ -139,4 +139,4 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest
+        pytest -v
