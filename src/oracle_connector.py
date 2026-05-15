@@ -1,4 +1,5 @@
-from typing import List, Iterator, Tuple, Any
+import oracledb
+from typing import List, Iterator, Tuple, Any, Optional
 from dataclasses import dataclass
 
 @dataclass
@@ -11,9 +12,22 @@ class DBConfig:
 class OracleConnector:
     """Manages connection lifecycle and executes SQL."""
 
+    def __init__(self):
+        self.conn: Optional[oracledb.Connection] = None
+
     def connect(self, config: DBConfig):
         """Establishes connection using python-oracledb."""
-        pass
+        self.conn = oracledb.connect(
+            user=config.user,
+            password=config.password,
+            dsn=config.dsn
+        )
+
+    def close(self):
+        """Closes the database connection."""
+        if self.conn:
+            self.conn.close()
+            self.conn = None
 
     def create_gtt(self, ids: List[str]):
         """Populates the Global Temporary Table with IDs."""
