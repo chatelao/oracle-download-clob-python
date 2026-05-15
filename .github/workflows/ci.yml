@@ -16,6 +16,22 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Free Disk Space
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        docker builder prune -af
+        docker system prune -af
+
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
@@ -30,6 +46,92 @@ jobs:
         python -m pip install --upgrade pip
         bash src/install.sh
         bash test/install.sh
+
+    - name: Cache SQLcl
+      uses: actions/cache@v4
+      with:
+        path: ~/sqlcl
+        key: ${{ runner.os }}-sqlcl-latest
+
+    - name: Install SQLcl
+      run: |
+        SQLCL_DIR="$HOME/sqlcl"
+        if [ ! -d "$SQLCL_DIR" ]; then
+            mkdir -p "$SQLCL_DIR"
+            curl -L https://download.oracle.com/otn_software/java/sqldeveloper/sqlcl-latest.zip -o sqlcl-latest.zip
+            unzip -q sqlcl-latest.zip -d "$SQLCL_DIR"
+            rm sqlcl-latest.zip
+        fi
+        SQLCL_BIN=$(find "$SQLCL_DIR" -name "sql" -type f | grep "/bin/sql" | head -n 1)
+        SQLCL_BIN_DIR=$(cd "$(dirname "$SQLCL_BIN")" && pwd)
+        echo "$SQLCL_BIN_DIR" >> $GITHUB_PATH
+
+    - name: Cache Docker Images
+      id: cache-docker-images
+      uses: actions/cache@v4
+      with:
+        path: /tmp/docker-images
+        key: ${{ runner.os }}-docker-images-${{ hashFiles('docker-compose.yml') }}
+
+    - name: Load Docker Images
+      run: |
+        if [ -f /tmp/docker-images/images.tar ]; then
+          docker load -i /tmp/docker-images/images.tar
+        fi
+
+    - name: Start Services
+      run: |
+        docker compose up -d
+
+    - name: Wait for Oracle Database
+      run: |
+        echo "Waiting for Oracle Database to be healthy..."
+        MAX_RETRIES=60
+        COUNT=0
+        until [ "$(docker inspect --format='{{.State.Health.Status}}' oracle-db)" == "healthy" ]; do
+            sleep 10
+            COUNT=$((COUNT + 1))
+            if [ $COUNT -ge $MAX_RETRIES ]; then
+                echo "Error: Oracle Database failed to become healthy."
+                docker logs oracle-db
+                exit 1
+            fi
+            echo "Still waiting... ($((COUNT * 10))s)"
+        done
+        echo "Oracle Database container is healthy."
+
+        echo "Ensuring SYSTEM account is unlocked and disabling failed login limit..."
+        docker exec -i -u oracle -e ORACLE_SID=FREE oracle-db sqlplus -S / as sysdba <<'EOF'
+        ALTER USER system IDENTIFIED BY password ACCOUNT UNLOCK;
+        ALTER PROFILE DEFAULT LIMIT FAILED_LOGIN_ATTEMPTS UNLIMITED;
+        ALTER SESSION SET CONTAINER = FREEPDB1;
+        ALTER USER system IDENTIFIED BY password ACCOUNT UNLOCK;
+        EXIT;
+        EOF
+
+        echo "Waiting for Oracle Database to accept connections..."
+        COUNT=0
+        MAX_CONN_RETRIES=20
+        until timeout 30s bash -c "echo 'SELECT 1 FROM DUAL;' | sql -L -s system/password@127.0.0.1:1521/FREEPDB1" 2>&1; do
+            sleep 30
+            COUNT=$((COUNT + 1))
+            if [ $COUNT -ge $MAX_CONN_RETRIES ]; then
+                echo "Error: Oracle Database failed to accept connections after 10 minutes."
+                exit 1
+            fi
+            echo "Still waiting for connection... ($((COUNT * 30))s)"
+        done
+        echo "Oracle Database is ready for connections."
+
+    - name: Initialize Database
+      run: |
+        sql -L -s system/password@127.0.0.1:1521/FREEPDB1 < test/init_db.sql
+
+    - name: Save Docker Images
+      if: steps.cache-docker-images.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p /tmp/docker-images
+        docker save container-registry.oracle.com/database/free:latest ollama/ollama:latest -o /tmp/docker-images/images.tar
 
     - name: Verify project structure
       run: |
