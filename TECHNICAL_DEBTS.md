@@ -10,7 +10,8 @@ This document tracks identified technical debts, security concerns, or architect
 - **Recommended Fix:** Implement a streaming read/upload mechanism similar to the download's chunked approach, although Oracle's LOB update often requires the whole content or chunked `write` calls.
 - **Logged Date:** 2026-05-15
 
-### 2. Missing Connection Error Handling
+### 2. Missing Connection Error Handling (Resolved)
 - **Description:** `OracleConnector.connect` does not currently handle exceptions (e.g., `oracledb.Error`).
 - **Impact:** Low - to be addressed during CLI integration and global error handling implementation.
 - **Logged Date:** 2026-05-15
+- **Resolution Date:** 2026-05-15 - Implemented try-except in `OracleConnector.connect`.

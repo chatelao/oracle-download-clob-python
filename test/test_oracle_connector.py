@@ -120,3 +120,11 @@ def test_runtime_error_if_not_connected(connector):
         list(connector.fetch_clobs_join())
     with pytest.raises(RuntimeError):
         connector.update_clob("1", "content")
+
+def test_connect_error(connector, db_config):
+    import oracledb
+    with patch('oracledb.connect') as mock_connect:
+        mock_connect.side_effect = oracledb.Error("Connection failed")
+        with pytest.raises(RuntimeError) as excinfo:
+            connector.connect(db_config)
+        assert "Failed to connect to Oracle database" in str(excinfo.value)

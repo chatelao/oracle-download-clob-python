@@ -22,11 +22,14 @@ class OracleConnector:
     def connect(self, config: DBConfig):
         """Establishes connection using python-oracledb."""
         self.config = config
-        self.conn = oracledb.connect(
-            user=config.user,
-            password=config.password,
-            dsn=config.dsn
-        )
+        try:
+            self.conn = oracledb.connect(
+                user=config.user,
+                password=config.password,
+                dsn=config.dsn
+            )
+        except oracledb.Error as e:
+            raise RuntimeError(f"Failed to connect to Oracle database: {e}") from e
 
     def close(self):
         """Closes the database connection."""
