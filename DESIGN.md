@@ -13,8 +13,6 @@ The following technologies have been selected for the implementation, production
   - *Justification:* Highly composable and easy to use for creating professional command-line interfaces with automatic help generation and argument validation.
 - **Data Handling:** **csv (standard library)**
   - *Justification:* The built-in `csv` module is sufficient for parsing the ID lists without adding external dependencies like pandas.
-- **Packaging:** **PyInstaller**
-  - *Justification:* Used to create standalone, single-file executables for distribution, ensuring the tool can be run without a local Python environment.
 
 ### Testing
 - **Framework:** **pytest**

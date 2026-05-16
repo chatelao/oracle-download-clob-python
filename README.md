@@ -19,10 +19,6 @@ Detailed documentation is available in the following files:
 
 Online documentation (ReadTheDocs): [Coming Soon]
 
-## Standalone Executable
-
-The tool is available as a single-file executable for Linux on every GitHub Release. You can download it from the [Releases](https://github.com/chatelao/oracle-download-clob-python/releases) page.
-
 ## Getting Started
 
 ### Installation
