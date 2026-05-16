@@ -97,7 +97,7 @@ def test_fetch_clobs_join(connector, db_config):
         assert db_config.target_table in sql
         assert db_config.gtt_name in sql
 
-def test_update_clob(connector, db_config):
+def test_update_clob_no_auto_commit(connector, db_config):
     with patch('oracledb.connect') as mock_connect:
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
@@ -111,6 +111,15 @@ def test_update_clob(connector, db_config):
         args, _ = mock_cursor.execute.call_args
         assert "UPDATE" in args[0]
         assert args[1] == ("new_content", "1")
+        mock_conn.commit.assert_not_called()
+
+def test_commit(connector, db_config):
+    with patch('oracledb.connect') as mock_connect:
+        mock_conn = MagicMock()
+        mock_connect.return_value = mock_conn
+
+        connector.connect(db_config)
+        connector.commit()
         mock_conn.commit.assert_called_once()
 
 def test_runtime_error_if_not_connected(connector):

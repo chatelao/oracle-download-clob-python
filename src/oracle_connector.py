@@ -1,5 +1,5 @@
 import oracledb
-from typing import List, Iterator, Tuple, Any, Optional
+from typing import List, Iterator, Tuple, Any, Optional, Union, TextIO
 from dataclasses import dataclass
 
 @dataclass
@@ -82,12 +82,17 @@ class OracleConnector:
                 for row in rows:
                     yield row
 
-    def update_clob(self, id: str, content: str):
-        """Updates a specific record with new CLOB data."""
+    def update_clob(self, id: str, content: Union[str, TextIO]):
+        """Updates a specific record with new CLOB data.
+        Accepts either a string or a file-like object for streaming."""
         if not self.conn or not self.config:
             raise RuntimeError("Database not connected")
 
         sql = f"UPDATE {self.config.target_table} SET {self.config.clob_column} = :1 WHERE {self.config.id_column} = :2"
         with self.conn.cursor() as cursor:
             cursor.execute(sql, (content, id))
+
+    def commit(self):
+        """Commits the current transaction."""
+        if self.conn:
             self.conn.commit()

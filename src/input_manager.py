@@ -12,11 +12,32 @@ class InputManager:
 
         ids = set()
         with open(file_path, mode='r', newline='', encoding='utf-8') as csvfile:
+            # Detect header presence
+            sample = csvfile.read(2048)
+            csvfile.seek(0)
+            has_header = False
+            if sample:
+                try:
+                    has_header = csv.Sniffer().has_header(sample)
+                except Exception:
+                    has_header = False
+
             reader = csv.reader(csvfile)
+
+            # Use a flag to ensure we only skip one header
+            header_skipped = False
+            if has_header:
+                next(reader, None)
+                header_skipped = True
+
             for row in reader:
                 if row and row[0]:
                     val = row[0].strip()
-                    if val and val.upper() != "ID": # Simple header skip
+                    if val:
+                        # Fallback: if Sniffer failed but first row is "ID", skip it
+                        if not header_skipped and val.upper() == "ID":
+                            header_skipped = True
+                            continue
                         ids.add(val)
 
         return sorted(list(ids))
