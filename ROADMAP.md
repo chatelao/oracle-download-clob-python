@@ -71,6 +71,6 @@ Integrating components and exposing them via the command-line interface.
 Ensuring the project is well-documented and meets all quality standards.
 
 - [ ] Configure ReadTheDocs (RTD) for automated documentation publishing ⏳
-- [ ] Perform end-to-end integration testing with an Oracle instance ⏳
+- [x] Perform end-to-end integration testing with an Oracle instance ✅ 2026-05-16
 - [ ] Final code review and technical debt assessment ⏳
 - [ ] Release version 1.0.0 ⏳
