@@ -47,7 +47,7 @@ def test_download_mode(orchestrator, mock_managers, db_config, tmp_path):
     assert mock_managers["processor"].stream_to_file.call_count == 2
     mock_managers["db"].close.assert_called_once()
 
-def test_upload_mode(orchestrator, mock_managers, db_config, tmp_path):
+def test_upload_mode(orchestrator, mock_managers, db_config, tmp_path, caplog):
     csv_path = tmp_path / "ids.csv"
     input_dir = tmp_path / "input"
     input_dir.mkdir()
@@ -61,6 +61,9 @@ def test_upload_mode(orchestrator, mock_managers, db_config, tmp_path):
 
     mock_managers["input"].load_ids.assert_called_once_with(csv_path)
     mock_managers["db"].connect.assert_called_once_with(db_config)
-    mock_managers["processor"].read_from_file.assert_called_once()
-    mock_managers["db"].update_clob.assert_called_once_with("1", "content1")
+    mock_managers["processor"].open_file.assert_called_once()
+    mock_managers["db"].update_clob.assert_called_once()
+    mock_managers["db"].commit.assert_called_once()
     mock_managers["db"].close.assert_called_once()
+
+    assert "File not found for ID 2" in caplog.text

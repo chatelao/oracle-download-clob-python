@@ -2,7 +2,10 @@ from pathlib import Path
 from src.input_manager import InputManager
 from src.oracle_connector import OracleConnector, DBConfig
 from src.clob_processor import CLOBProcessor
+import logging
 from src.fs_manager import FSManager
+
+logger = logging.getLogger(__name__)
 
 class Orchestrator:
     """High-level execution flow for Download and Upload modes."""
@@ -45,7 +48,10 @@ class Orchestrator:
             for id_val in ids:
                 file_path = input_dir / f"{id_val}.txt"
                 if file_path.exists():
-                    content = self.clob_processor.read_from_file(file_path)
-                    self.db_connector.update_clob(id_val, content)
+                    with self.clob_processor.open_file(file_path) as f:
+                        self.db_connector.update_clob(id_val, f)
+                else:
+                    logger.warning(f"File not found for ID {id_val}: {file_path}")
+            self.db_connector.commit()
         finally:
             self.db_connector.close()

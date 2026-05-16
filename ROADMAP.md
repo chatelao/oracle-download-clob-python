@@ -10,7 +10,7 @@ This roadmap outlines the implementation plan for the CLOB Download and Upload T
 | Phase 2 | Technical Interface Definitions | ✅ |
 | Phase 3 | Core Component Implementation | ✅ |
 | Phase 4 | Orchestration & CLI Development | ✅ |
-| Phase 5 | Documentation & Finalization | ⏳ |
+| Phase 5 | Documentation & Finalization | ✅ |
 
 ## Goals
 
@@ -70,8 +70,8 @@ Integrating components and exposing them via the command-line interface.
 ### Phase 5: Documentation & Finalization
 Ensuring the project is well-documented and meets all quality standards.
 
-- [ ] Configure ReadTheDocs (RTD) for automated documentation publishing ⏳
+- [x] Configure ReadTheDocs (RTD) for automated documentation publishing ✅ 2026-05-16
 - [x] Perform end-to-end integration testing with an Oracle instance ✅ 2026-05-16
-- [ ] Final code review and technical debt assessment ⏳
+- [x] Final code review and technical debt assessment ✅ 2026-05-16
 - [x] Implement automated packaging and release of standalone executable ✅ 2026-05-15
-- [ ] Release version 1.0.0 ⏳
+- [x] Release version 1.0.0 ✅ 2026-05-16

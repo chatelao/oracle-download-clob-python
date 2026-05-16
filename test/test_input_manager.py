@@ -12,6 +12,17 @@ def test_load_ids_valid_csv(tmp_path):
 
     assert ids == ["101", "102", "103"]
 
+def test_load_ids_different_header(tmp_path):
+    # Sniffer needs some data to work reliably, usually more than one column or more rows
+    csv_content = "IDENTIFIER,COMMENT\n101,test\n102,test2\n"
+    csv_file = tmp_path / "test_header.csv"
+    csv_file.write_text(csv_content)
+
+    manager = InputManager()
+    ids = manager.load_ids(csv_file)
+
+    assert ids == ["101", "102"]
+
 def test_load_ids_no_header(tmp_path):
     csv_content = "201\n202\n"
     csv_file = tmp_path / "test.csv"
