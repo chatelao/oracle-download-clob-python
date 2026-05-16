@@ -11,6 +11,8 @@ The following technologies have been selected for the implementation, production
   - *Justification:* The successor to `cx_Oracle`, it offers a "Thin" mode that does not require the Oracle Instant Client, simplifying deployment and CI/CD pipelines.
 - **CLI Framework:** **click**
   - *Justification:* Highly composable and easy to use for creating professional command-line interfaces with automatic help generation and argument validation.
+- **Packaging:** **PyInstaller**
+  - *Justification:* Widely used for creating standalone executables from Python projects, simplifying distribution for end-users without requiring a Python environment.
 - **Data Handling:** **csv (standard library)**
   - *Justification:* The built-in `csv` module is sufficient for parsing the ID lists without adding external dependencies like pandas.
 
