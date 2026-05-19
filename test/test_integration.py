@@ -57,3 +57,64 @@ def test_update_clob_integration(connector):
     if hasattr(content, 'read'):
         content = content.read()
     assert str(content) == new_content
+
+def test_large_clob_integration(connector):
+    # Create a large string (> 64KB)
+    large_content = "A" * (70 * 1024)
+    target_id = "1"
+    connector.update_clob(target_id, large_content)
+    connector.commit()
+
+    connector.create_gtt([target_id])
+    results = list(connector.fetch_clobs_join())
+    assert len(results) == 1
+
+    content = results[0][1]
+    if hasattr(content, 'read'):
+        content = content.read()
+    assert str(content) == large_content
+
+def test_empty_clob_integration(connector):
+    target_id = "2"
+    connector.update_clob(target_id, "")
+    connector.commit()
+
+    connector.create_gtt([target_id])
+    results = list(connector.fetch_clobs_join())
+    assert len(results) == 1
+
+    content = results[0][1]
+    if hasattr(content, 'read'):
+        content = content.read()
+    # Oracle treats empty string as NULL in some contexts, but let's see how it behaves here
+    assert content is None or str(content) == ""
+
+def test_unicode_clob_integration(connector):
+    unicode_content = "Hello 🌍, Special characters: ñ, á, é, í, ó, ú, ⚡"
+    target_id = "3"
+    connector.update_clob(target_id, unicode_content)
+    connector.commit()
+
+    connector.create_gtt([target_id])
+    results = list(connector.fetch_clobs_join())
+    assert len(results) == 1
+
+    content = results[0][1]
+    if hasattr(content, 'read'):
+        content = content.read()
+    assert str(content) == unicode_content
+
+def test_non_existent_id_integration(connector):
+    # GTT has an ID that doesn't exist in CLOB_DATA
+    connector.create_gtt(["non-existent-999"])
+    results = list(connector.fetch_clobs_join())
+    assert len(results) == 0
+
+def test_multiple_ids_integration(connector):
+    ids = ["1", "2", "3"]
+    connector.create_gtt(ids)
+    results = list(connector.fetch_clobs_join())
+    assert len(results) == 3
+
+    result_ids = {row[0] for row in results}
+    assert result_ids == set(ids)

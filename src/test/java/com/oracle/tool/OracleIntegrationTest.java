@@ -170,4 +170,92 @@ class OracleIntegrationTest {
             }
         }
     }
+
+    @Test
+    void testLargeClob() throws Exception {
+        String largeContent = "A".repeat(70 * 1024);
+        String targetId = "1";
+        try (Reader reader = new StringReader(largeContent)) {
+            connector.updateClob(targetId, reader);
+            connector.commit();
+        }
+
+        connector.createGtt(List.of(targetId));
+        try (Stream<ClobRecord> results = connector.fetchClobsJoin()) {
+            ClobRecord record = results.findFirst().orElseThrow();
+            try (Reader r = record.clob().getCharacterStream()) {
+                StringBuilder sb = new StringBuilder();
+                char[] buffer = new char[8192];
+                int charsRead;
+                while ((charsRead = r.read(buffer)) != -1) {
+                    sb.append(buffer, 0, charsRead);
+                }
+                assertEquals(largeContent, sb.toString());
+            }
+        }
+    }
+
+    @Test
+    void testEmptyClob() throws Exception {
+        String targetId = "2";
+        try (Reader reader = new StringReader("")) {
+            connector.updateClob(targetId, reader);
+            connector.commit();
+        }
+
+        connector.createGtt(List.of(targetId));
+        try (Stream<ClobRecord> results = connector.fetchClobsJoin()) {
+            ClobRecord record = results.findFirst().orElseThrow();
+            if (record.clob() == null) {
+                // Oracle might return null for empty CLOB depending on how it's handled
+                return;
+            }
+            try (Reader r = record.clob().getCharacterStream()) {
+                assertEquals(-1, r.read());
+            }
+        }
+    }
+
+    @Test
+    void testUnicodeClob() throws Exception {
+        String unicodeContent = "Hello 🌍, Special characters: ñ, á, é, í, ó, ú, ⚡";
+        String targetId = "3";
+        try (Reader reader = new StringReader(unicodeContent)) {
+            connector.updateClob(targetId, reader);
+            connector.commit();
+        }
+
+        connector.createGtt(List.of(targetId));
+        try (Stream<ClobRecord> results = connector.fetchClobsJoin()) {
+            ClobRecord record = results.findFirst().orElseThrow();
+            try (Reader r = record.clob().getCharacterStream()) {
+                StringBuilder sb = new StringBuilder();
+                int charRead;
+                while ((charRead = r.read()) != -1) {
+                    sb.append((char) charRead);
+                }
+                assertEquals(unicodeContent, sb.toString());
+            }
+        }
+    }
+
+    @Test
+    void testNonExistentId() throws SQLException {
+        connector.createGtt(List.of("non-existent-999"));
+        try (Stream<ClobRecord> results = connector.fetchClobsJoin()) {
+            assertEquals(0, results.count());
+        }
+    }
+
+    @Test
+    void testMultipleIds() throws SQLException {
+        List<String> ids = List.of("1", "2", "3");
+        connector.createGtt(ids);
+        try (Stream<ClobRecord> results = connector.fetchClobsJoin()) {
+            List<ClobRecord> list = results.toList();
+            assertEquals(3, list.size());
+            List<String> resultIds = list.stream().map(ClobRecord::id).toList();
+            assertTrue(resultIds.containsAll(ids));
+        }
+    }
 }
