@@ -6,8 +6,8 @@ This roadmap outlines the plan to port the CLOB Download and Upload Tool from Py
 
 | Phase | Description | Status |
 | :--- | :--- | :--- |
-| Phase 1 | Project Initialization & Environment Setup | 🏗️ |
-| Phase 2 | Core Component Implementation | ⏳ |
+| Phase 1 | Project Initialization & Environment Setup | ✅ |
+| Phase 2 | Core Component Implementation | 🏗️ |
 | Phase 3 | Orchestration & CLI Development | ⏳ |
 | Phase 4 | Testing & Quality Assurance | ⏳ |
 | Phase 5 | Packaging & Release | ⏳ |
@@ -28,16 +28,16 @@ This roadmap outlines the plan to port the CLOB Download and Upload Tool from Py
 ### Phase 1: Project Initialization & Environment Setup
 Establish the Java development environment and build configuration.
 
-- [ ] Initialize Maven project structure (`src/main/java`, `src/test/java`) ⏳
-- [ ] Configure `pom.xml` with dependencies (OJDBC, Picocli, Commons CSV, SLF4J/Logback) ⏳
-- [ ] Set up GitHub Actions workflow for Java CI ⏳
+- [x] Initialize Maven project structure (`src/main/java`, `src/test/java`) ✅ 2026-05-16
+- [x] Configure `pom.xml` with dependencies (OJDBC, Picocli, Commons CSV, SLF4J/Logback) ✅ 2026-05-16
+- [x] Set up GitHub Actions workflow for Java CI ✅ 2026-05-16
 - [ ] Create `JAVA_CONCEPT.md`, `JAVA_DESIGN.md`, and `JAVA_ROADMAP.md` ✅ 2026-05-16
 
 ### Phase 2: Core Component Implementation
 Porting the functional logic to Java classes.
 
-- [ ] **Input Manager**: Implementation using Apache Commons CSV ⏳
-- [ ] **File System Manager**: Implementation using `java.nio.file` ⏳
+- [x] **Input Manager**: Implementation using Apache Commons CSV ✅ 2026-05-16
+- [x] **File System Manager**: Implementation using `java.nio.file` ✅ 2026-05-16
 - [ ] **Oracle Connector**: ⏳
     - [ ] JDBC Connection management ⏳
     - [ ] GTT creation and bulk insert logic ⏳
