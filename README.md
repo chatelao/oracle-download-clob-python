@@ -12,6 +12,7 @@ A high-performance CLI tool to download and upload Oracle CLOB fields based on a
 
 Detailed documentation is available in the following files:
 
+- [INSTALL.md](INSTALL.md): **Installation and Usage Guide**.
 - [CONCEPT.md](CONCEPT.md): Business goals, use cases, and high-level architecture.
 - [DESIGN.md](DESIGN.md): Technical stack, interface definitions, and major design choices.
 - [ROADMAP.md](ROADMAP.md): Project implementation plan and progress.
@@ -21,40 +22,19 @@ Online documentation (ReadTheDocs): [Coming Soon]
 
 ## Getting Started
 
-### Installation
+Refer to [INSTALL.md](INSTALL.md) for detailed instructions on how to install and use the tool.
+
+### Quick Start (Source)
 
 ```bash
+# Install dependencies
 ./src/install.sh
-```
 
-### Usage
+# Download CLOBs
+python3 src/cli.py download --csv-path ids.csv --output-dir ./output [DB_OPTIONS]
 
-#### Download CLOBs
-
-```bash
-python3 src/cli.py download \
-    --csv-path ids.csv \
-    --output-dir ./output \
-    --user MYUSER \
-    --password MYPASS \
-    --dsn MYHOST:1521/SERVICE \
-    --table MY_TABLE \
-    --id-column ID \
-    --clob-column DATA
-```
-
-#### Upload CLOBs
-
-```bash
-python3 src/cli.py upload \
-    --csv-path ids.csv \
-    --input-dir ./input \
-    --user MYUSER \
-    --password MYPASS \
-    --dsn MYHOST:1521/SERVICE \
-    --table MY_TABLE \
-    --id-column ID \
-    --clob-column DATA
+# Upload CLOBs
+python3 src/cli.py upload --csv-path ids.csv --input-dir ./input [DB_OPTIONS]
 ```
 
 ## Testing
