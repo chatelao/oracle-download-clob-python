@@ -28,6 +28,7 @@ def test_oracle_connection(connector):
     assert connector.conn is not None
 
 def test_fetch_clobs_join_integration(connector):
+    # Use IDs 1 and 2
     ids = ["1", "2"]
     connector.create_gtt(ids)
 
@@ -45,11 +46,14 @@ def test_fetch_clobs_join_integration(connector):
     assert "Initial content for ID 1" in str(content1)
 
 def test_update_clob_integration(connector):
+    # Use ID 3
     new_content = "Updated content via integration test"
-    connector.update_clob("3", new_content)
+    target_id = "3"
+    connector.update_clob(target_id, new_content)
+    connector.commit()
 
     # Verify the update
-    connector.create_gtt(["3"])
+    connector.create_gtt([target_id])
     results = list(connector.fetch_clobs_join())
     assert len(results) == 1
 
@@ -59,9 +63,10 @@ def test_update_clob_integration(connector):
     assert str(content) == new_content
 
 def test_large_clob_integration(connector):
+    # Use ID 4
     # Create a large string (> 64KB)
     large_content = "A" * (70 * 1024)
-    target_id = "1"
+    target_id = "4"
     connector.update_clob(target_id, large_content)
     connector.commit()
 
@@ -75,7 +80,8 @@ def test_large_clob_integration(connector):
     assert str(content) == large_content
 
 def test_empty_clob_integration(connector):
-    target_id = "2"
+    # Use ID 5
+    target_id = "5"
     connector.update_clob(target_id, "")
     connector.commit()
 
@@ -90,8 +96,9 @@ def test_empty_clob_integration(connector):
     assert content is None or str(content) == ""
 
 def test_unicode_clob_integration(connector):
+    # Use ID 6
     unicode_content = "Hello 🌍, Special characters: ñ, á, é, í, ó, ú, ⚡"
-    target_id = "3"
+    target_id = "6"
     connector.update_clob(target_id, unicode_content)
     connector.commit()
 
@@ -111,7 +118,8 @@ def test_non_existent_id_integration(connector):
     assert len(results) == 0
 
 def test_multiple_ids_integration(connector):
-    ids = ["1", "2", "3"]
+    # Use IDs 7, 8, 9
+    ids = ["7", "8", "9"]
     connector.create_gtt(ids)
     results = list(connector.fetch_clobs_join())
     assert len(results) == 3

@@ -133,6 +133,7 @@ class OracleIntegrationTest {
 
     @Test
     void testCreateGttAndFetchJoin() throws SQLException {
+        // Use IDs 1 and 2
         List<String> ids = List.of("1", "2");
         connector.createGtt(ids);
 
@@ -148,17 +149,19 @@ class OracleIntegrationTest {
 
     @Test
     void testUpdateClob() throws SQLException, Exception {
+        // Use ID 3
         String newContent = "Updated content from Java integration test";
+        String targetId = "3";
         try (Reader reader = new StringReader(newContent)) {
-            connector.updateClob("3", reader);
+            connector.updateClob(targetId, reader);
             connector.commit();
         }
 
         // Verify
-        connector.createGtt(List.of("3"));
+        connector.createGtt(List.of(targetId));
         try (Stream<ClobRecord> results = connector.fetchClobsJoin()) {
             ClobRecord record = results.findFirst().orElseThrow();
-            assertEquals("3", record.id());
+            assertEquals(targetId, record.id());
 
             try (Reader r = record.clob().getCharacterStream()) {
                 StringBuilder sb = new StringBuilder();
@@ -173,8 +176,9 @@ class OracleIntegrationTest {
 
     @Test
     void testLargeClob() throws Exception {
+        // Use ID 4
         String largeContent = "A".repeat(70 * 1024);
-        String targetId = "1";
+        String targetId = "4";
         try (Reader reader = new StringReader(largeContent)) {
             connector.updateClob(targetId, reader);
             connector.commit();
@@ -197,7 +201,8 @@ class OracleIntegrationTest {
 
     @Test
     void testEmptyClob() throws Exception {
-        String targetId = "2";
+        // Use ID 5
+        String targetId = "5";
         try (Reader reader = new StringReader("")) {
             connector.updateClob(targetId, reader);
             connector.commit();
@@ -218,8 +223,9 @@ class OracleIntegrationTest {
 
     @Test
     void testUnicodeClob() throws Exception {
+        // Use ID 6
         String unicodeContent = "Hello 🌍, Special characters: ñ, á, é, í, ó, ú, ⚡";
-        String targetId = "3";
+        String targetId = "6";
         try (Reader reader = new StringReader(unicodeContent)) {
             connector.updateClob(targetId, reader);
             connector.commit();
@@ -249,7 +255,8 @@ class OracleIntegrationTest {
 
     @Test
     void testMultipleIds() throws SQLException {
-        List<String> ids = List.of("1", "2", "3");
+        // Use IDs 7, 8, 9
+        List<String> ids = List.of("7", "8", "9");
         connector.createGtt(ids);
         try (Stream<ClobRecord> results = connector.fetchClobsJoin()) {
             List<ClobRecord> list = results.toList();
