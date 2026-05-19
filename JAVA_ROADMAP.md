@@ -8,8 +8,8 @@ This roadmap outlines the plan to port the CLOB Download and Upload Tool from Py
 | :--- | :--- | :--- |
 | Phase 1 | Project Initialization & Environment Setup | ✅ |
 | Phase 2 | Core Component Implementation | ✅ |
-| Phase 3 | Orchestration & CLI Development | 🏗️ |
-| Phase 4 | Testing & Quality Assurance | ⏳ |
+| Phase 3 | Orchestration & CLI Development | ✅ |
+| Phase 4 | Testing & Quality Assurance | 🏗️ |
 | Phase 5 | Packaging & Release | ⏳ |
 
 ## Goals
@@ -17,8 +17,8 @@ This roadmap outlines the plan to port the CLOB Download and Upload Tool from Py
 - ✅ Initialize Java project with Maven and required dependencies.
 - ✅ Port `InputManager` and `FSManager` to Java.
 - ✅ Port `OracleConnector` and `CLOBProcessor` using JDBC.
-- ⏳ Implement `Orchestrator` and Picocli-based CLI.
-- ⏳ Implement comprehensive JUnit 5 tests and Testcontainers integration.
+- ✅ Implement `Orchestrator` and Picocli-based CLI.
+- 🏗️ Implement comprehensive JUnit 5 tests and Testcontainers integration.
 - ⏳ Configure GraalVM Native Image build for standalone distribution.
 
 ---
@@ -48,14 +48,14 @@ Porting the functional logic to Java classes.
 Integrating components and exposing them via the Java CLI.
 
 - [x] **Orchestrator Engine**: Port Download and Upload mode flows ✅ 2026-05-16
-- [ ] **CLI Development**: 🏗️
-    - [ ] Implement `CliCommand` using Picocli ⏳
-    - [ ] Integrate logging and error handling ⏳
+- [x] **CLI Development**: ✅ 2026-05-16
+    - [x] Implement `CliCommand` using Picocli ✅ 2026-05-16
+    - [x] Integrate logging and error handling ✅ 2026-05-16
 
 ### Phase 4: Testing & Quality Assurance
 Ensuring the Java implementation is reliable and functionally equivalent to the Python version.
 
-- [ ] Write unit tests for all core components using JUnit 5 and Mockito ⏳
+- [x] Write unit tests for all core components using JUnit 5 and Mockito ✅ 2026-05-16
 - [ ] Implement integration tests using Testcontainers and Oracle Database Free ⏳
 - [ ] Perform functional parity checks between Python and Java versions ⏳
 
