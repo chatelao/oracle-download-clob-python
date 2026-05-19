@@ -11,6 +11,13 @@ CREATE TABLE CLOB_DATA (
 INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('1', 'Initial content for ID 1');
 INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('2', 'Initial content for ID 2');
 INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('3', 'Initial content for ID 3');
+INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('4', 'Initial content for ID 4');
+INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('5', 'Initial content for ID 5');
+INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('6', 'Initial content for ID 6');
+INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('7', 'Initial content for ID 7');
+INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('8', 'Initial content for ID 8');
+INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('9', 'Initial content for ID 9');
+INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('10', 'Initial content for ID 10');
 
 COMMIT;
 
