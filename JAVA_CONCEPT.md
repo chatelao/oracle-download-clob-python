@@ -57,10 +57,18 @@ When processing a large list of IDs from a CSV, how should the application filte
 - **Pros:** Simple implementation.
 - **Cons:** Significant performance degradation for large datasets due to network latency and per-statement overhead.
 
-### Alternative 3: Global Temporary Table (GTT) Join (Selected)
+### Alternative 3: Global Temporary Table (GTT) Join
 - **Description:** Bulk insert the IDs from the CSV into a Global Temporary Table (GTT) and then perform a JOIN with the target business table.
 - **Pros:** Highest performance for large datasets; leverages the Oracle optimizer; set-based operation.
 - **Cons:** Requires the existence of a GTT or permissions to create one.
 
-### Chosen Alternative: Alternative 3
-Alternative 3 is chosen because it offers the best scalability and performance for large CSV files, ensuring the tool remains efficient even as data volume grows.
+### Alternative 4: Dual Filtering Strategy (Selected)
+- **Description:** Combines the simplicity of `IN` clauses with the power of GTT joins based on the dataset size.
+- **Implementation:**
+    - Use "IN" filtering for small datasets (up to 999 records).
+    - Use GTT Join strategy for larger datasets (>= 1000 records).
+- **Pros:** Avoids GTT overhead for small tasks while maintaining high performance for large ones; respects Oracle's 1000-expression limit for `IN` lists.
+- **Cons:** Slightly more complex orchestration logic.
+
+### Chosen Alternative: Alternative 4
+Alternative 4 is chosen because it provides the best balance between implementation simplicity for common small-scale tasks and high-performance scalability for large data volumes.
