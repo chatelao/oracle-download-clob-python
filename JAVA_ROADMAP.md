@@ -7,16 +7,16 @@ This roadmap outlines the plan to port the CLOB Download and Upload Tool from Py
 | Phase | Description | Status |
 | :--- | :--- | :--- |
 | Phase 1 | Project Initialization & Environment Setup | ✅ |
-| Phase 2 | Core Component Implementation | 🏗️ |
-| Phase 3 | Orchestration & CLI Development | ⏳ |
+| Phase 2 | Core Component Implementation | ✅ |
+| Phase 3 | Orchestration & CLI Development | 🏗️ |
 | Phase 4 | Testing & Quality Assurance | ⏳ |
 | Phase 5 | Packaging & Release | ⏳ |
 
 ## Goals
 
-- 🏗️ Initialize Java project with Maven and required dependencies.
-- ⏳ Port `InputManager` and `FSManager` to Java.
-- ⏳ Port `OracleConnector` and `CLOBProcessor` using JDBC.
+- ✅ Initialize Java project with Maven and required dependencies.
+- ✅ Port `InputManager` and `FSManager` to Java.
+- ✅ Port `OracleConnector` and `CLOBProcessor` using JDBC.
 - ⏳ Implement `Orchestrator` and Picocli-based CLI.
 - ⏳ Implement comprehensive JUnit 5 tests and Testcontainers integration.
 - ⏳ Configure GraalVM Native Image build for standalone distribution.
@@ -31,23 +31,23 @@ Establish the Java development environment and build configuration.
 - [x] Initialize Maven project structure (`src/main/java`, `src/test/java`) ✅ 2026-05-16
 - [x] Configure `pom.xml` with dependencies (OJDBC, Picocli, Commons CSV, SLF4J/Logback) ✅ 2026-05-16
 - [x] Set up GitHub Actions workflow for Java CI ✅ 2026-05-16
-- [ ] Create `JAVA_CONCEPT.md`, `JAVA_DESIGN.md`, and `JAVA_ROADMAP.md` ✅ 2026-05-16
+- [x] Create `JAVA_CONCEPT.md`, `JAVA_DESIGN.md`, and `JAVA_ROADMAP.md` ✅ 2026-05-16
 
 ### Phase 2: Core Component Implementation
 Porting the functional logic to Java classes.
 
 - [x] **Input Manager**: Implementation using Apache Commons CSV ✅ 2026-05-16
 - [x] **File System Manager**: Implementation using `java.nio.file` ✅ 2026-05-16
-- [ ] **Oracle Connector**: ⏳
-    - [ ] JDBC Connection management ⏳
-    - [ ] GTT creation and bulk insert logic ⏳
-    - [ ] JOIN-based query execution ⏳
-- [ ] **CLOB Processor**: Streaming logic using `Clob.getCharacterStream()` and `Clob.setCharacterStream()` ⏳
+- [x] **Oracle Connector**: Implementation using JDBC ✅ 2026-05-16
+    - [x] JDBC Connection management ✅ 2026-05-16
+    - [x] GTT creation and bulk insert logic ✅ 2026-05-16
+    - [x] JOIN-based query execution ✅ 2026-05-16
+- [x] **CLOB Processor**: Streaming logic using `Clob.getCharacterStream()` and `Reader.transferTo()` ✅ 2026-05-16
 
 ### Phase 3: Orchestration & CLI Development
 Integrating components and exposing them via the Java CLI.
 
-- [ ] **Orchestrator Engine**: Port Download and Upload mode flows ⏳
+- [ ] **Orchestrator Engine**: Port Download and Upload mode flows 🏗️
 - [ ] **CLI Development**: ⏳
     - [ ] Implement `CliCommand` using Picocli ⏳
     - [ ] Integrate logging and error handling ⏳
