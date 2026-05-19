@@ -98,17 +98,17 @@ Picocli is the superior choice for modern Java CLI applications due to its devel
 ### Choice 3: Packaging and Distribution
 **How should the tool be distributed?**
 
-- **Alternative 1: Executable JAR (Fat JAR)**
+- **Alternative 1: Executable JAR (Fat JAR) (Selected - Fallback)**
   - *Description:* A single JAR containing all dependencies.
   - *Pros:* Simple to build; runs anywhere with a JVM.
   - *Cons:* Requires a pre-installed Java Runtime Environment (JRE).
-- **Alternative 2: GraalVM Native Image (Selected)**
+- **Alternative 2: GraalVM Native Image (Selected - Primary)**
   - *Description:* Compiles the Java application into a standalone native executable.
   - *Pros:* No JRE required; fast startup; single binary distribution (similar to PyInstaller).
   - *Cons:* More complex build process; platform-specific binaries.
 
-**Chosen Alternative: Alternative 2**
-GraalVM Native Image matches the distribution model of the Python version (standalone executable) and provides the best user experience.
+**Chosen Alternative: Alternative 2 (Primary) & Alternative 1 (Fallback)**
+GraalVM Native Image matches the distribution model of the Python version (standalone executable) and provides the best user experience. The Fat JAR is provided as a reliable fallback for environments with a JVM.
 
 ---
 

@@ -137,13 +137,31 @@ jobs:
         pip install -r src/requirements.txt
         pip install -r src/requirements-packaging.txt
 
-    - name: Build executable
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        cache: 'maven'
+
+    - name: Build Python executable
       run: |
         pyinstaller --onefile --name oracle-clob-tool --paths . src/cli.py
+
+    - name: Build Java executable (Fat JAR)
+      run: |
+        mvn package -DskipTests
+
+    - name: Build Java native executable
+      run: |
+        mvn package -Pnative -DskipTests
 
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
-        files: dist/oracle-clob-tool
+        files: |
+          dist/oracle-clob-tool
+          target/oracle-clob-tool.jar
+          target/oracle-clob-tool-java
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

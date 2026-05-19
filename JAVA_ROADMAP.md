@@ -63,6 +63,7 @@ Ensuring the Java implementation is reliable and functionally equivalent to the 
 Automating the build and distribution of the Java application.
 
 - [x] Configure Maven profiles for GraalVM Native Image compilation ✅ 2026-05-19
-- [ ] Automate native executable generation in CI pipeline ⏳
+- [x] Configure executable JAR packaging ✅ 2026-05-19
+- [x] Automate native executable generation in CI pipeline ✅ 2026-05-19
 - [x] Update documentation with Java-specific installation and usage instructions ✅ 2026-05-19
 - [ ] Release Java version 1.0.0 ⏳

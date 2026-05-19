@@ -19,13 +19,15 @@ This guide provides instructions on how to install and use the Oracle CLOB Downl
 
 ### Option 1: Standalone Binary (Recommended)
 
-The easiest way to use the tool is to download the standalone executable from the GitHub Releases page. This version does not require Python to be installed on your system.
+The easiest way to use the tool is to download the standalone executable from the GitHub Releases page. This version does not require Python or Java to be installed on your system.
 
 1. Go to the [Releases](https://github.com/chatelao/oracle-download-clob-python/releases) page.
-2. Download the `oracle-clob-tool` binary for your platform.
+2. Download the `oracle-clob-tool` (Python-based) or `oracle-clob-tool-java` (Java-based) binary for your platform.
 3. (Linux/macOS) Make the binary executable:
    ```bash
    chmod +x oracle-clob-tool
+   # OR
+   chmod +x oracle-clob-tool-java
    ```
 
 ### Option 2: From Source (Python 3.12+)
@@ -59,7 +61,12 @@ The tool can also be run or built from source using Java and Maven.
 3. (Optional) Build a native executable using GraalVM:
    ```bash
    mvn package -Pnative
-   # The executable will be available at target/oracle-clob-tool
+   # The executable will be available at target/oracle-clob-tool-java
+   ```
+4. (Alternative) Build an executable "Fat JAR":
+   ```bash
+   mvn package
+   # Run it using: java -jar target/oracle-clob-tool.jar [OPTIONS]
    ```
 
 ---
