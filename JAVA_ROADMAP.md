@@ -11,7 +11,7 @@ This roadmap outlines the plan to port the CLOB Download and Upload Tool from Py
 | Phase 3 | Orchestration & CLI Development | ✅ |
 | Phase 4 | Testing & Quality Assurance | 🏗️ |
 | Phase 5 | Packaging & Release | 🏗️ |
-| Phase 6 | Advanced Filtering & Optimization | ⏳ |
+| Phase 6 | Advanced Filtering & Optimization | ✅ |
 
 ## Goals
 
@@ -22,7 +22,7 @@ This roadmap outlines the plan to port the CLOB Download and Upload Tool from Py
 - ✅ Implement comprehensive JUnit 5 tests and Testcontainers integration.
 - ⏳ Implement Java code style enforcement using Checkstyle (Google rules from `alpheusafpparser`).
 - ✅ Configure GraalVM Native Image build for standalone distribution.
-- ⏳ Implement Dual ID Filtering Strategy (IN clause vs. GTT Join).
+- ✅ Implement Dual ID Filtering Strategy (IN clause vs. GTT Join).
 
 ---
 
@@ -77,4 +77,4 @@ Automating the build and distribution of the Java application.
 ### Phase 6: Advanced Filtering & Optimization
 Enhancing the tool's efficiency for varying dataset sizes.
 
-- [ ] Implement Dual ID Filtering Strategy (IN clause for < 1000, GTT for >= 1000) ⏳
+- [x] Implement Dual ID Filtering Strategy (IN clause for < 1000, GTT for >= 1000) ✅ 2026-05-19

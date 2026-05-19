@@ -97,6 +97,40 @@ def test_fetch_clobs_join(connector, db_config):
         assert db_config.target_table in sql
         assert db_config.gtt_name in sql
 
+def test_fetch_clobs_in(connector, db_config):
+    with patch('oracledb.connect') as mock_connect:
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+        mock_connect.return_value = mock_conn
+
+        connector.connect(db_config)
+
+        mock_cursor.fetchmany.side_effect = [[("1", "content1"), ("2", "content2")], []]
+
+        ids = ["1", "2"]
+        results = list(connector.fetch_clobs_in(ids))
+
+        assert len(results) == 2
+        assert results[0] == ("1", "content1")
+        assert results[1] == ("2", "content2")
+
+        mock_cursor.execute.assert_called_once()
+        sql, binds = mock_cursor.execute.call_args[0]
+        assert db_config.target_table in sql
+        assert "IN (:1, :2)" in sql
+        assert binds == ids
+
+def test_fetch_clobs_in_empty(connector, db_config):
+    with patch('oracledb.connect') as mock_connect:
+        mock_conn = MagicMock()
+        mock_connect.return_value = mock_conn
+        connector.connect(db_config)
+
+        results = list(connector.fetch_clobs_in([]))
+        assert len(results) == 0
+        mock_conn.cursor.assert_not_called()
+
 def test_update_clob_no_auto_commit(connector, db_config):
     with patch('oracledb.connect') as mock_connect:
         mock_conn = MagicMock()

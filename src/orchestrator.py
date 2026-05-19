@@ -28,10 +28,17 @@ class Orchestrator:
 
         self.db_connector.connect(db_config)
         try:
-            self.db_connector.create_gtt(ids)
             self.fs_manager.ensure_directory(output_dir)
 
-            for id_val, clob_lob in self.db_connector.fetch_clobs_join():
+            if len(ids) < 1000:
+                logger.info(f"Using IN clause strategy for {len(ids)} IDs")
+                clob_iterator = self.db_connector.fetch_clobs_in(ids)
+            else:
+                logger.info(f"Using GTT Join strategy for {len(ids)} IDs")
+                self.db_connector.create_gtt(ids)
+                clob_iterator = self.db_connector.fetch_clobs_join()
+
+            for id_val, clob_lob in clob_iterator:
                 target_path = output_dir / f"{id_val}.txt"
                 self.clob_processor.stream_to_file(clob_lob, target_path)
         finally:

@@ -55,24 +55,38 @@ class OrchestratorTest {
     }
 
     @Test
-    void downloadMode_WithIds_ExecutesFlow() throws IOException, SQLException {
+    void downloadMode_SmallDataset_UsesInClause() throws IOException, SQLException {
         List<String> ids = List.of("1", "2");
         when(inputManager.loadIds(any())).thenReturn(ids);
         Clob clob1 = mock(Clob.class);
-        Clob clob2 = mock(Clob.class);
-        Stream<ClobRecord> clobStream = Stream.of(
-                new ClobRecord("1", clob1),
-                new ClobRecord("2", clob2)
-        );
+        Stream<ClobRecord> clobStream = Stream.of(new ClobRecord("1", clob1));
+        when(dbConnector.fetchClobsIn(ids)).thenReturn(clobStream);
+
+        orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig);
+
+        verify(dbConnector).connect(dbConfig);
+        verify(dbConnector, never()).createGtt(any());
+        verify(dbConnector).fetchClobsIn(ids);
+        verify(dbConnector, never()).fetchClobsJoin();
+        verify(clobProcessor).streamToFile(eq(clob1), any());
+        verify(dbConnector).close();
+    }
+
+    @Test
+    void downloadMode_LargeDataset_UsesGttJoin() throws IOException, SQLException {
+        List<String> ids = Collections.nCopies(1000, "id");
+        when(inputManager.loadIds(any())).thenReturn(ids);
+        Clob clob1 = mock(Clob.class);
+        Stream<ClobRecord> clobStream = Stream.of(new ClobRecord("id", clob1));
         when(dbConnector.fetchClobsJoin()).thenReturn(clobStream);
 
         orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig);
 
         verify(dbConnector).connect(dbConfig);
         verify(dbConnector).createGtt(ids);
-        verify(fsManager).ensureDirectory(any());
+        verify(dbConnector).fetchClobsJoin();
+        verify(dbConnector, never()).fetchClobsIn(any());
         verify(clobProcessor).streamToFile(eq(clob1), any());
-        verify(clobProcessor).streamToFile(eq(clob2), any());
         verify(dbConnector).close();
     }
 
