@@ -1,0 +1,104 @@
+package com.oracle.tool;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Clob;
+import java.sql.SQLException;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class OrchestratorTest {
+
+    @Mock
+    private InputManager inputManager;
+    @Mock
+    private OracleConnector dbConnector;
+    @Mock
+    private CLOBProcessor clobProcessor;
+    @Mock
+    private FSManager fsManager;
+    @Mock
+    private DBConfig dbConfig;
+
+    private Orchestrator orchestrator;
+
+    @TempDir
+    Path tempDir;
+
+    @BeforeEach
+    void setUp() {
+        orchestrator = new Orchestrator(inputManager, dbConnector, clobProcessor, fsManager);
+    }
+
+    @Test
+    void downloadMode_WithNoIds_DoesNothing() throws IOException, SQLException {
+        when(inputManager.loadIds(any())).thenReturn(Collections.emptyList());
+
+        orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig);
+
+        verify(dbConnector, never()).connect(any());
+        verify(inputManager).loadIds(any());
+    }
+
+    @Test
+    void downloadMode_WithIds_ExecutesFlow() throws IOException, SQLException {
+        List<String> ids = List.of("1", "2");
+        when(inputManager.loadIds(any())).thenReturn(ids);
+        Clob clob1 = mock(Clob.class);
+        Clob clob2 = mock(Clob.class);
+        Stream<ClobRecord> clobStream = Stream.of(
+                new ClobRecord("1", clob1),
+                new ClobRecord("2", clob2)
+        );
+        when(dbConnector.fetchClobsJoin()).thenReturn(clobStream);
+
+        orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig);
+
+        verify(dbConnector).connect(dbConfig);
+        verify(dbConnector).createGtt(ids);
+        verify(fsManager).ensureDirectory(any());
+        verify(clobProcessor).streamToFile(eq(clob1), any());
+        verify(clobProcessor).streamToFile(eq(clob2), any());
+        verify(dbConnector).close();
+    }
+
+    @Test
+    void uploadMode_WithNoIds_DoesNothing() throws IOException, SQLException {
+        when(inputManager.loadIds(any())).thenReturn(Collections.emptyList());
+
+        orchestrator.uploadMode(Path.of("test.csv"), Path.of("input"), dbConfig);
+
+        verify(dbConnector, never()).connect(any());
+    }
+
+    @Test
+    void uploadMode_WithIds_ExecutesFlow() throws IOException, SQLException {
+        List<String> ids = List.of("1");
+        when(inputManager.loadIds(any())).thenReturn(ids);
+        Reader reader = mock(Reader.class);
+        when(clobProcessor.openFile(any())).thenReturn(reader);
+
+        Files.createFile(tempDir.resolve("1.txt"));
+
+        orchestrator.uploadMode(Path.of("test.csv"), tempDir, dbConfig);
+
+        verify(dbConnector).connect(dbConfig);
+        verify(dbConnector).updateClob(eq("1"), eq(reader));
+        verify(dbConnector).commit();
+        verify(dbConnector).close();
+    }
+}

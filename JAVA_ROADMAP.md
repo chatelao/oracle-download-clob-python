@@ -47,8 +47,8 @@ Porting the functional logic to Java classes.
 ### Phase 3: Orchestration & CLI Development
 Integrating components and exposing them via the Java CLI.
 
-- [ ] **Orchestrator Engine**: Port Download and Upload mode flows 🏗️
-- [ ] **CLI Development**: ⏳
+- [x] **Orchestrator Engine**: Port Download and Upload mode flows ✅ 2026-05-16
+- [ ] **CLI Development**: 🏗️
     - [ ] Implement `CliCommand` using Picocli ⏳
     - [ ] Integrate logging and error handling ⏳
 
