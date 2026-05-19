@@ -30,6 +30,17 @@ class OracleIntegrationTest {
 
     @BeforeAll
     static void initDb() throws Exception {
+        // First try to use the existing database if it's running (e.g. in CI)
+        String ciJdbcUrl = "jdbc:oracle:thin:@127.0.0.1:1521/FREEPDB1";
+        try (Connection conn = DriverManager.getConnection(ciJdbcUrl, "system", "password")) {
+            System.out.println("Using existing database at " + ciJdbcUrl);
+            configStaticDb(ciJdbcUrl, "system", "password");
+            initializeSchema(conn);
+            return;
+        } catch (SQLException e) {
+            System.out.println("Existing database not found, starting Testcontainers: " + e.getMessage());
+        }
+
         try {
             oracle = new OracleContainer(
                     DockerImageName.parse("container-registry.oracle.com/database/free:latest")
@@ -40,10 +51,28 @@ class OracleIntegrationTest {
             Assumptions.abort("Docker is not available or failed to start: " + e.getMessage());
         }
 
-        try (Connection conn = DriverManager.getConnection(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword());
-             Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword())) {
+            configStaticDb(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword());
+            initializeSchema(conn);
+        }
+    }
 
+    private static String staticJdbcUrl;
+    private static String staticUser;
+    private static String staticPassword;
+
+    private static void configStaticDb(String jdbcUrl, String user, String password) {
+        staticJdbcUrl = jdbcUrl;
+        staticUser = user;
+        staticPassword = password;
+    }
+
+    private static void initializeSchema(Connection conn) throws Exception {
+        try (Statement stmt = conn.createStatement()) {
             Path sqlFile = Path.of("test/init_db.sql");
+            if (!Files.exists(sqlFile)) {
+                return;
+            }
             String sql = Files.readString(sqlFile);
 
             // Simple SQL splitter that handles comments and basic commands
@@ -62,6 +91,10 @@ class OracleIntegrationTest {
                     if (e.getErrorCode() == 942 && trimmedCmd.toUpperCase().contains("DROP")) {
                         continue;
                     }
+                    // Ignore already exists
+                    if (e.getErrorCode() == 955) {
+                        continue;
+                    }
                     throw e;
                 }
             }
@@ -71,13 +104,12 @@ class OracleIntegrationTest {
     @BeforeEach
     void setUp() throws SQLException {
         connector = new OracleConnector();
-        String jdbcUrl = oracle.getJdbcUrl();
         // Extract DSN from jdbc:oracle:thin:@localhost:PORT/SERVICE
-        String dsn = jdbcUrl.substring(jdbcUrl.indexOf("@") + 1);
+        String dsn = staticJdbcUrl.substring(staticJdbcUrl.indexOf("@") + 1);
 
         config = new DBConfig(
-                oracle.getUsername(),
-                oracle.getPassword(),
+                staticUser,
+                staticPassword,
                 dsn,
                 "CLOB_DATA",
                 "ID",
@@ -96,7 +128,6 @@ class OracleIntegrationTest {
 
     @Test
     void testConnection() throws SQLException {
-        assertNotNull(oracle);
         assertNotNull(connector);
     }
 
