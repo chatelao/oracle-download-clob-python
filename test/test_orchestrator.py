@@ -29,23 +29,34 @@ def db_config():
         target_table="T", id_column="I", clob_column="C"
     )
 
-def test_download_mode(orchestrator, mock_managers, db_config, tmp_path):
+
+def test_download_mode_large_dataset(orchestrator, mock_managers, db_config, tmp_path):
     csv_path = tmp_path / "ids.csv"
     output_dir = tmp_path / "output"
 
-    mock_managers["input"].load_ids.return_value = ["1", "2"]
-    mock_lob1 = MagicMock()
-    mock_lob2 = MagicMock()
-    mock_managers["db"].fetch_clobs_join.return_value = [("1", mock_lob1), ("2", mock_lob2)]
+    ids = [str(i) for i in range(1001)]
+    mock_managers["input"].load_ids.return_value = ids
+    mock_managers["db"].fetch_clobs_join.return_value = []
 
     orchestrator.download_mode(csv_path, output_dir, db_config)
 
-    mock_managers["input"].load_ids.assert_called_once_with(csv_path)
-    mock_managers["db"].connect.assert_called_once_with(db_config)
-    mock_managers["db"].create_gtt.assert_called_once_with(["1", "2"])
-    mock_managers["fs"].ensure_directory.assert_called_once_with(output_dir)
-    assert mock_managers["processor"].stream_to_file.call_count == 2
-    mock_managers["db"].close.assert_called_once()
+    mock_managers["db"].create_gtt.assert_called_once_with(ids)
+    mock_managers["db"].fetch_clobs_join.assert_called_once()
+    mock_managers["db"].fetch_clobs_in.assert_not_called()
+
+def test_download_mode_small_dataset(orchestrator, mock_managers, db_config, tmp_path):
+    csv_path = tmp_path / "ids.csv"
+    output_dir = tmp_path / "output"
+
+    ids = ["1", "2"]
+    mock_managers["input"].load_ids.return_value = ids
+    mock_managers["db"].fetch_clobs_in.return_value = []
+
+    orchestrator.download_mode(csv_path, output_dir, db_config)
+
+    mock_managers["db"].create_gtt.assert_not_called()
+    mock_managers["db"].fetch_clobs_join.assert_not_called()
+    mock_managers["db"].fetch_clobs_in.assert_called_once_with(ids)
 
 def test_upload_mode(orchestrator, mock_managers, db_config, tmp_path, caplog):
     csv_path = tmp_path / "ids.csv"

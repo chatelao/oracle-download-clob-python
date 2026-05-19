@@ -82,6 +82,30 @@ class OracleConnector:
                 for row in rows:
                     yield row
 
+    def fetch_clobs_in(self, ids: List[str]) -> Iterator[Tuple[str, Any]]:
+        """Executes query with IN clause and yields CLOB objects."""
+        if not self.conn or not self.config:
+            raise RuntimeError("Database not connected")
+
+        if not ids:
+            return
+
+        binds = [f":{i+1}" for i in range(len(ids))]
+        sql = f"""
+            SELECT {self.config.id_column}, {self.config.clob_column}
+            FROM {self.config.target_table}
+            WHERE {self.config.id_column} IN ({', '.join(binds)})
+        """
+
+        with self.conn.cursor() as cursor:
+            cursor.execute(sql, ids)
+            while True:
+                rows = cursor.fetchmany()
+                if not rows:
+                    break
+                for row in rows:
+                    yield row
+
     def update_clob(self, id: str, content: Union[str, TextIO]):
         """Updates a specific record with new CLOB data.
         Accepts either a string or a file-like object for streaming."""

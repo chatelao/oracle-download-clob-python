@@ -134,6 +134,65 @@ public class OracleConnector implements AutoCloseable {
     }
 
     /**
+     * Executes the query with an IN clause and returns a Stream of ClobRecords.
+     *
+     * @param ids List of IDs to fetch.
+     * @return Stream of ClobRecord objects.
+     * @throws SQLException If a database access error occurs.
+     */
+    public Stream<ClobRecord> fetchClobsIn(List<String> ids) throws SQLException {
+        if (conn == null) {
+            throw new SQLException("Database not connected");
+        }
+
+        if (ids.isEmpty()) {
+            return Stream.empty();
+        }
+
+        StringBuilder sqlBuilder = new StringBuilder();
+        sqlBuilder.append("SELECT ").append(config.idColumn())
+                  .append(", ").append(config.clobColumn())
+                  .append(" FROM ").append(config.targetTable())
+                  .append(" WHERE ").append(config.idColumn())
+                  .append(" IN (");
+
+        for (int i = 0; i < ids.size(); i++) {
+            sqlBuilder.append("?");
+            if (i < ids.size() - 1) {
+                sqlBuilder.append(", ");
+            }
+        }
+        sqlBuilder.append(")");
+
+        PreparedStatement pstmt = conn.prepareStatement(sqlBuilder.toString());
+        for (int i = 0; i < ids.size(); i++) {
+            pstmt.setString(i + 1, ids.get(i));
+        }
+
+        ResultSet rs = pstmt.executeQuery();
+
+        return StreamSupport.stream(new Spliterators.AbstractSpliterator<ClobRecord>(Long.MAX_VALUE, 0) {
+            @Override
+            public boolean tryAdvance(java.util.function.Consumer<? super ClobRecord> action) {
+                try {
+                    if (!rs.next()) return false;
+                    action.accept(new ClobRecord(rs.getString(1), rs.getClob(2)));
+                    return true;
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }, false).onClose(() -> {
+            try {
+                rs.close();
+                pstmt.close();
+            } catch (SQLException e) {
+                logger.error("Error closing ResultSet/Statement: {}", e.getMessage());
+            }
+        });
+    }
+
+    /**
      * Updates a specific record with new CLOB data.
      *
      * @param id      Record ID.

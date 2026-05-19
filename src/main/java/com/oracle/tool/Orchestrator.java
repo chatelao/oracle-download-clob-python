@@ -50,10 +50,19 @@ public class Orchestrator {
 
         dbConnector.connect(dbConfig);
         try {
-            dbConnector.createGtt(ids);
             fsManager.ensureDirectory(outputDir);
 
-            try (Stream<ClobRecord> clobStream = dbConnector.fetchClobsJoin()) {
+            Stream<ClobRecord> clobStream;
+            if (ids.size() < 1000) {
+                logger.info("Using IN clause strategy for {} IDs", ids.size());
+                clobStream = dbConnector.fetchClobsIn(ids);
+            } else {
+                logger.info("Using GTT Join strategy for {} IDs", ids.size());
+                dbConnector.createGtt(ids);
+                clobStream = dbConnector.fetchClobsJoin();
+            }
+
+            try (clobStream) {
                 Iterable<ClobRecord> iterable = clobStream::iterator;
                 for (ClobRecord record : iterable) {
                     Path targetPath = outputDir.resolve(record.id() + ".txt");

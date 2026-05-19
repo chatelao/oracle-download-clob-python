@@ -118,6 +118,44 @@ class OracleConnectorTest {
     }
 
     @Test
+    void fetchClobsIn_ReturnsStream() throws SQLException {
+        try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+                    .thenReturn(connection);
+            connector.connect(config);
+
+            when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
+            when(preparedStatement.executeQuery()).thenReturn(resultSet);
+            when(resultSet.next()).thenReturn(true, false);
+            when(resultSet.getString(1)).thenReturn("1");
+
+            List<String> ids = List.of("1");
+            Stream<ClobRecord> stream = connector.fetchClobsIn(ids);
+            assertNotNull(stream);
+            List<ClobRecord> results = stream.toList();
+
+            assertEquals(1, results.size());
+            assertEquals("1", results.get(0).id());
+
+            verify(connection).prepareStatement(contains("IN (?)"));
+            verify(preparedStatement).setString(1, "1");
+        }
+    }
+
+    @Test
+    void fetchClobsIn_EmptyIds() throws SQLException {
+        try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+                    .thenReturn(connection);
+            connector.connect(config);
+
+            Stream<ClobRecord> stream = connector.fetchClobsIn(List.of());
+            assertEquals(0, stream.count());
+            verify(connection, never()).prepareStatement(anyString());
+        }
+    }
+
+    @Test
     void updateClob_Success() throws SQLException {
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
             driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
