@@ -9,8 +9,8 @@ This roadmap outlines the plan to port the CLOB Download and Upload Tool from Py
 | Phase 1 | Project Initialization & Environment Setup | ✅ |
 | Phase 2 | Core Component Implementation | ✅ |
 | Phase 3 | Orchestration & CLI Development | ✅ |
-| Phase 4 | Testing & Quality Assurance | 🏗️ |
-| Phase 5 | Packaging & Release | ⏳ |
+| Phase 4 | Testing & Quality Assurance | ✅ |
+| Phase 5 | Packaging & Release | 🏗️ |
 
 ## Goals
 
@@ -19,7 +19,7 @@ This roadmap outlines the plan to port the CLOB Download and Upload Tool from Py
 - ✅ Port `OracleConnector` and `CLOBProcessor` using JDBC.
 - ✅ Implement `Orchestrator` and Picocli-based CLI.
 - ✅ Implement comprehensive JUnit 5 tests and Testcontainers integration.
-- ⏳ Configure GraalVM Native Image build for standalone distribution.
+- ✅ Configure GraalVM Native Image build for standalone distribution.
 
 ---
 
@@ -57,12 +57,12 @@ Ensuring the Java implementation is reliable and functionally equivalent to the 
 
 - [x] Write unit tests for all core components using JUnit 5 and Mockito ✅ 2026-05-16
 - [x] Implement integration tests using Testcontainers and Oracle Database Free ✅ 2026-05-19
-- [ ] Perform functional parity checks between Python and Java versions ⏳
+- [x] Perform functional parity checks between Python and Java versions ✅ 2026-05-19
 
 ### Phase 5: Packaging & Release
 Automating the build and distribution of the Java application.
 
-- [ ] Configure Maven profiles for GraalVM Native Image compilation ⏳
+- [x] Configure Maven profiles for GraalVM Native Image compilation ✅ 2026-05-19
 - [ ] Automate native executable generation in CI pipeline ⏳
-- [ ] Update documentation with Java-specific installation and usage instructions ⏳
+- [x] Update documentation with Java-specific installation and usage instructions ✅ 2026-05-19
 - [ ] Release Java version 1.0.0 ⏳

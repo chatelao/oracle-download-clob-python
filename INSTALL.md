@@ -43,6 +43,25 @@ If you prefer to run the tool from source, you will need Python 3.12 or higher i
    # Or manually: pip install -r src/requirements.txt
    ```
 
+### Option 3: From Source (Java 21+)
+
+The tool can also be run or built from source using Java and Maven.
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/chatelao/oracle-download-clob-python.git
+   cd oracle-download-clob-python
+   ```
+2. Run directly using Maven:
+   ```bash
+   mvn compile exec:java -Dexec.mainClass="com.oracle.tool.CliCommand" -Dexec.args="download --help"
+   ```
+3. (Optional) Build a native executable using GraalVM:
+   ```bash
+   mvn package -Pnative
+   # The executable will be available at target/oracle-clob-tool
+   ```
+
 ---
 
 ## Usage
