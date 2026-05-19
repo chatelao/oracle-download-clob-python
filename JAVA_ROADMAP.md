@@ -18,7 +18,7 @@ This roadmap outlines the plan to port the CLOB Download and Upload Tool from Py
 - ✅ Port `InputManager` and `FSManager` to Java.
 - ✅ Port `OracleConnector` and `CLOBProcessor` using JDBC.
 - ✅ Implement `Orchestrator` and Picocli-based CLI.
-- 🏗️ Implement comprehensive JUnit 5 tests and Testcontainers integration.
+- ✅ Implement comprehensive JUnit 5 tests and Testcontainers integration.
 - ⏳ Configure GraalVM Native Image build for standalone distribution.
 
 ---
@@ -56,7 +56,7 @@ Integrating components and exposing them via the Java CLI.
 Ensuring the Java implementation is reliable and functionally equivalent to the Python version.
 
 - [x] Write unit tests for all core components using JUnit 5 and Mockito ✅ 2026-05-16
-- [ ] Implement integration tests using Testcontainers and Oracle Database Free ⏳
+- [x] Implement integration tests using Testcontainers and Oracle Database Free ✅ 2026-05-19
 - [ ] Perform functional parity checks between Python and Java versions ⏳
 
 ### Phase 5: Packaging & Release
