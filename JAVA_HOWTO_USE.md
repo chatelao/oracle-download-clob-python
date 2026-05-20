@@ -54,7 +54,8 @@ java -jar target/oracle-clob-tool.jar download \
 | `--user` | Yes | Oracle DB username. | |
 | `--password` | Yes | Oracle DB password. | |
 | `--dsn` | Yes | Oracle DB DSN (e.g., `host:port/service`). | |
-| `--table` | Yes | Target table name. | |
+| `--table` | No | Target table name (required if `--query` is not provided). | |
+| `--query` | No | User written SELECT statement (required if `--table` is not provided). | |
 | `--id-column` | Yes | Column name for IDs. | |
 | `--clob-column` | Yes | Column name for CLOBs. | |
 | `--gtt-name` | No | Name of the Global Temporary Table. | `GTT_IDS` |
@@ -87,6 +88,54 @@ java -jar target/oracle-clob-tool.jar upload \
 | `--table` | Yes | Target table name. |
 | `--id-column` | Yes | Column name for IDs. |
 | `--clob-column` | Yes | Column name for CLOBs. |
+
+---
+
+## Configuration Files
+
+The tool supports loading parameters from TOML or INI configuration files using the `--config` option. This is useful for storing database credentials and connection details.
+
+**Note:** Command-line arguments consistently override configuration file defaults. The `--csv-path` must always be provided via the command line.
+
+### TOML Example (`config.toml`)
+
+```toml
+user = "MYUSER"
+password = "MYPASS"
+dsn = "localhost:1521/FREEPDB1"
+# Use table:
+table = "MY_TABLE"
+# OR use query:
+# query = "SELECT * FROM MY_TABLE WHERE STATUS = 'ACTIVE'"
+id-column = "ID"
+clob-column = "CONTENT"
+gtt-name = "GTT_IDS"
+```
+
+### INI Example (`config.ini`)
+
+The tool looks for settings under the `[oracle-clob-tool]` or `[DEFAULT]` section.
+
+```ini
+[oracle-clob-tool]
+user = MYUSER
+password = MYPASS
+dsn = localhost:1521/FREEPDB1
+table = MY_TABLE
+# query = SELECT * FROM MY_TABLE WHERE STATUS = 'ACTIVE'
+id-column = ID
+clob-column = CONTENT
+gtt-name = GTT_IDS
+```
+
+### Usage with Config File
+
+```bash
+java -jar target/oracle-clob-tool.jar download \
+    --config config.toml \
+    --csv-path ids.csv \
+    --output-dir ./output
+```
 
 ---
 

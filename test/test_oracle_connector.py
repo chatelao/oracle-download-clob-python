@@ -121,6 +121,25 @@ def test_fetch_clobs_in(connector, db_config):
         assert "IN (:1, :2)" in sql
         assert binds == ids
 
+def test_fetch_clobs_in_query(connector, db_config):
+    db_config.query = "SELECT * FROM SOME_VIEW"
+    with patch('oracledb.connect') as mock_connect:
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+        mock_connect.return_value = mock_conn
+
+        connector.connect(db_config)
+        mock_cursor.fetchmany.side_effect = [[("1", "content1")], []]
+
+        ids = ["1"]
+        list(connector.fetch_clobs_in(ids))
+
+        mock_cursor.execute.assert_called_once()
+        sql, binds = mock_cursor.execute.call_args[0]
+        assert "(SELECT * FROM SOME_VIEW)" in sql
+        assert db_config.target_table not in sql
+
 def test_fetch_clobs_in_empty(connector, db_config):
     with patch('oracledb.connect') as mock_connect:
         mock_conn = MagicMock()

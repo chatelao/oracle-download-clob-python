@@ -106,9 +106,11 @@ public class OracleConnector implements AutoCloseable {
       throw new SQLException("Database not connected");
     }
 
+    String source = (config.query() != null && !config.query().isEmpty())
+        ? "(" + config.query() + ")" : config.targetTable();
     String sql = String.format(
         "SELECT t.%s, t.%s FROM %s t JOIN %s g ON t.%s = g.%s",
-        config.idColumn(), config.clobColumn(), config.targetTable(),
+        config.idColumn(), config.clobColumn(), source,
         config.gttName(), config.idColumn(), config.idColumn()
     );
 
@@ -155,10 +157,12 @@ public class OracleConnector implements AutoCloseable {
       return Stream.empty();
     }
 
+    String source = (config.query() != null && !config.query().isEmpty())
+        ? "(" + config.query() + ")" : config.targetTable();
     StringBuilder sqlBuilder = new StringBuilder();
     sqlBuilder.append("SELECT ").append(config.idColumn())
         .append(", ").append(config.clobColumn())
-        .append(" FROM ").append(config.targetTable())
+        .append(" FROM ").append(source)
         .append(" WHERE ").append(config.idColumn())
         .append(" IN (");
 

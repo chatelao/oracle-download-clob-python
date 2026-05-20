@@ -84,6 +84,17 @@ Downloads CLOB data for a specific set of IDs provided in a CSV file.
     --id-column ID \
     --clob-column DATA
 
+# OR use a custom query for download
+./oracle-clob-tool download \
+    --csv-path ids.csv \
+    --output-dir ./output \
+    --user MYUSER \
+    --password MYPASS \
+    --dsn MYHOST:1521/SERVICE \
+    --query "SELECT ID, DATA FROM MY_TABLE WHERE STATUS = 'ACTIVE'" \
+    --id-column ID \
+    --clob-column DATA
+
 # Using source code
 python3 src/cli.py download [OPTIONS]
 ```

@@ -13,6 +13,7 @@ This roadmap outlines the plan to port the CLOB Download and Upload Tool from Py
 | Phase 5 | Packaging & Release | ✅ |
 | Phase 6 | Advanced Filtering & Optimization | ✅ |
 | Phase 7 | Configuration Management | ✅ |
+| Phase 8 | Advanced Querying | ✅ |
 
 ## Goals
 
@@ -87,3 +88,8 @@ Enhancing the tool's efficiency for varying dataset sizes.
 Enabling more flexible configuration options for users.
 
 - [x] Add support for loading database parameters from .ini or .toml files ✅ 2026-05-20
+
+### Phase 8: Advanced Querying
+Providing users with more control over the data retrieval process.
+
+- [x] Implement `--query` option as an alternative to `--table` for downloads ✅ 2026-05-20
