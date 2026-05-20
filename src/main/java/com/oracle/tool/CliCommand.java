@@ -1,15 +1,26 @@
 package com.oracle.tool;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.dataformat.toml.TomlMapper;
+import org.ini4j.Ini;
+import org.ini4j.Profile;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.IDefaultValueProvider;
+import picocli.CommandLine.Model.ArgSpec;
+import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Spec;
 
 @Command(name = "oracle-clob-tool",
     mixinStandardHelpOptions = true,
@@ -34,36 +45,47 @@ public class CliCommand implements Runnable {
     }
   }
 
-  @Command(name = "download", description = "Download CLOBs to local files.")
+  @Command(name = "download", description = "Download CLOBs to local files.",
+      defaultValueProvider = ConfigFileDefaultProvider.class)
   static class Download implements Callable<Integer> {
     @CommandLine.ParentCommand
     private CliCommand parent;
 
+    @Spec
+    CommandSpec spec;
+
+    @Option(names = "--config", description = "Path to INI or TOML config file.")
+    private void setConfig(File config) {
+      if (config != null && config.exists()) {
+        ((ConfigFileDefaultProvider) spec.defaultValueProvider()).loadConfig(config);
+      }
+    }
+
     @Option(names = "--csv-path", required = true,
         description = "Path to the CSV file containing IDs.")
-    private Path csvPath;
+    Path csvPath;
 
     @Option(names = "--output-dir", required = true,
         description = "Target directory for downloaded files.")
-    private Path outputDir;
+    Path outputDir;
 
     @Option(names = "--user", required = true, description = "Oracle DB username.")
-    private String user;
+    String user;
 
     @Option(names = "--password", required = true, description = "Oracle DB password.")
-    private String password;
+    String password;
 
     @Option(names = "--dsn", required = true, description = "Oracle DB DSN.")
-    private String dsn;
+    String dsn;
 
     @Option(names = "--table", required = true, description = "Target table name.")
-    private String table;
+    String table;
 
     @Option(names = "--id-column", required = true, description = "Column name for IDs.")
-    private String idColumn;
+    String idColumn;
 
     @Option(names = "--clob-column", required = true, description = "Column name for CLOBs.")
-    private String clobColumn;
+    String clobColumn;
 
     @Option(names = "--gtt-name", defaultValue = "GTT_IDS",
         description = "Name of the Global Temporary Table.")
@@ -71,7 +93,7 @@ public class CliCommand implements Runnable {
 
     @Override
     public Integer call() throws Exception {
-      if (parent.debug) {
+      if (parent != null && parent.debug) {
         configureDebugLogging();
       }
       try {
@@ -93,40 +115,51 @@ public class CliCommand implements Runnable {
     }
   }
 
-  @Command(name = "upload", description = "Upload local files to Oracle CLOBs.")
+  @Command(name = "upload", description = "Upload local files to Oracle CLOBs.",
+      defaultValueProvider = ConfigFileDefaultProvider.class)
   static class Upload implements Callable<Integer> {
     @CommandLine.ParentCommand
     private CliCommand parent;
 
+    @Spec
+    CommandSpec spec;
+
+    @Option(names = "--config", description = "Path to INI or TOML config file.")
+    private void setConfig(File config) {
+      if (config != null && config.exists()) {
+        ((ConfigFileDefaultProvider) spec.defaultValueProvider()).loadConfig(config);
+      }
+    }
+
     @Option(names = "--csv-path", required = true,
         description = "Path to the CSV file containing IDs.")
-    private Path csvPath;
+    Path csvPath;
 
     @Option(names = "--input-dir", required = true,
         description = "Source directory containing files to upload.")
-    private Path inputDir;
+    Path inputDir;
 
     @Option(names = "--user", required = true, description = "Oracle DB username.")
-    private String user;
+    String user;
 
     @Option(names = "--password", required = true, description = "Oracle DB password.")
-    private String password;
+    String password;
 
     @Option(names = "--dsn", required = true, description = "Oracle DB DSN.")
-    private String dsn;
+    String dsn;
 
     @Option(names = "--table", required = true, description = "Target table name.")
-    private String table;
+    String table;
 
     @Option(names = "--id-column", required = true, description = "Column name for IDs.")
-    private String idColumn;
+    String idColumn;
 
     @Option(names = "--clob-column", required = true, description = "Column name for CLOBs.")
-    private String clobColumn;
+    String clobColumn;
 
     @Override
     public Integer call() throws Exception {
-      if (parent.debug) {
+      if (parent != null && parent.debug) {
         configureDebugLogging();
       }
       try {
@@ -160,6 +193,54 @@ public class CliCommand implements Runnable {
         new CLOBProcessor(),
         new FSManager()
     );
+  }
+
+  static class ConfigFileDefaultProvider implements IDefaultValueProvider {
+    private Map<String, String> values = new HashMap<>();
+
+    public void loadConfig(File configFile) {
+      String fileName = configFile.getName().toLowerCase();
+      try {
+        if (fileName.endsWith(".toml")) {
+          TomlMapper mapper = new TomlMapper();
+          Map<String, Object> data = mapper.readValue(configFile, Map.class);
+          data.forEach((k, v) -> {
+            // Skip csv-path as per requirement "except the id list"
+            if (!"csv-path".equals(k)) {
+              values.put("--" + k, String.valueOf(v));
+            }
+          });
+        } else if (fileName.endsWith(".ini")) {
+          Ini ini = new Ini(configFile);
+          Profile.Section section = ini.get("oracle-clob-tool");
+          if (section == null) {
+            section = ini.get("DEFAULT");
+          }
+          if (section != null) {
+            section.forEach((k, v) -> {
+              // Skip csv-path as per requirement "except the id list"
+              if (!"csv-path".equals(k)) {
+                values.put("--" + k, v);
+              }
+            });
+          }
+        }
+      } catch (IOException e) {
+        logger.error("Failed to load config file {}: {}", configFile, e.getMessage());
+      }
+    }
+
+    @Override
+    public String defaultValue(ArgSpec argSpec) throws Exception {
+      if (argSpec.isOption()) {
+        for (String name : ((CommandLine.Model.OptionSpec) argSpec).names()) {
+          if (values.containsKey(name)) {
+            return values.get(name);
+          }
+        }
+      }
+      return null;
+    }
   }
 
   public static void main(String[] args) {

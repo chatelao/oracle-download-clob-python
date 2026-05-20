@@ -31,6 +31,15 @@ Allow to download and upload CLOB fields from/to files, based on a .csv list of 
   5. System updates the CLOB field in the database with the content of the corresponding file.
 - **Postconditions:** Database CLOB fields are updated with new content.
 
+### UC-3: Configure via File
+- **Actor:** User / Automated Process
+- **Preconditions:** A valid `.ini` or `.toml` file exists.
+- **Flow:**
+  1. Provide path to the configuration file using `--config`.
+  2. System reads parameters (user, password, dsn, table, etc.) from the file.
+  3. CLI arguments override file-based parameters if both are provided.
+- **Postconditions:** Tool executes with merged configuration.
+
 ## High-Level Architecture
 
 ### Functional Components

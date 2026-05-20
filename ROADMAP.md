@@ -12,6 +12,7 @@ This roadmap outlines the implementation plan for the CLOB Download and Upload T
 | Phase 4 | Orchestration & CLI Development | ✅ |
 | Phase 5 | Documentation & Finalization | ✅ |
 | Phase 6 | Advanced Filtering & Optimization | ✅ |
+| Phase 7 | Configuration Management | ✅ |
 
 ## Goals
 
@@ -82,3 +83,9 @@ Ensuring the project is well-documented and meets all quality standards.
 Enhancing the tool's efficiency for varying dataset sizes.
 
 - [x] Implement Dual ID Filtering Strategy (IN clause for < 1000, GTT for >= 1000) ✅ 2026-05-19
+- [x] Implement configuration via .ini and .toml files ✅ 2026-05-20
+
+### Phase 7: Configuration Management
+Enabling more flexible configuration options for users.
+
+- [x] Add support for loading database parameters from .ini or .toml files ✅ 2026-05-20
