@@ -12,10 +12,11 @@ public record DBConfig(
     String clobColumn,
     String gttName
 ) {
-    /**
-     * Secondary constructor with default GTT name.
-     */
-    public DBConfig(String user, String password, String dsn, String targetTable, String idColumn, String clobColumn) {
-        this(user, password, dsn, targetTable, idColumn, clobColumn, "GTT_IDS");
-    }
+  /**
+   * Secondary constructor with default GTT name.
+   */
+  public DBConfig(String user, String password, String dsn, String targetTable,
+      String idColumn, String clobColumn) {
+    this(user, password, dsn, targetTable, idColumn, clobColumn, "GTT_IDS");
+  }
 }
