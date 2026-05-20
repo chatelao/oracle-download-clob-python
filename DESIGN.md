@@ -15,6 +15,8 @@ The following technologies have been selected for the implementation, production
   - *Justification:* Widely used for creating standalone executables from Python projects, simplifying distribution for end-users without requiring a Python environment.
 - **Data Handling:** **csv (standard library)**
   - *Justification:* The built-in `csv` module is sufficient for parsing the ID lists without adding external dependencies like pandas.
+- **Configuration Parsing:** **configparser** and **tomllib** (standard library)
+  - *Justification:* `configparser` handles INI files, and `tomllib` (available since Python 3.11) handles TOML files, both part of the standard library, avoiding extra dependencies.
 
 ### Testing
 - **Framework:** **pytest**

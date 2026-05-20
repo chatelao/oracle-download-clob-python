@@ -17,6 +17,8 @@ The following technologies have been selected for the implementation of the Java
   - *Justification:* A robust and popular library for parsing and writing CSV files in Java.
 - **Logging:** **SLF4J with Logback**
   - *Justification:* SLF4J provides a standard logging facade, and Logback is a high-performance implementation.
+- **Configuration Parsing:** **Jackson Dataformat TOML** and **ini4j**
+  - *Justification:* Jackson provides a robust TOML parser, and ini4j is a lightweight and popular library for handling INI files in Java.
 
 ### Testing
 - **Framework:** **JUnit 5**

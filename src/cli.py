@@ -1,6 +1,8 @@
 import click
 import logging
 import sys
+import configparser
+import tomllib
 from pathlib import Path
 from src.oracle_connector import DBConfig, OracleConnector
 from src.input_manager import InputManager
@@ -16,6 +18,41 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def load_config(ctx, param, value):
+    """Callback to load configuration from a file."""
+    if not value:
+        return None
+
+    config_path = Path(value)
+    if not config_path.exists():
+        return value
+
+    config_data = {}
+    ext = config_path.suffix.lower()
+    try:
+        if ext == '.toml':
+            with open(config_path, "rb") as f:
+                config_data = tomllib.load(f)
+        elif ext == '.ini':
+            config = configparser.ConfigParser()
+            config.read(config_path)
+            section = 'oracle-clob-tool'
+            if section in config:
+                config_data = dict(config.items(section))
+            else:
+                config_data = dict(config.items('DEFAULT'))
+
+        # Normalize keys: replace '-' with '_' to match click parameter names
+        # Skip csv-path as per requirement "except the id list"
+        normalized_config = {k.replace('-', '_'): v for k, v in config_data.items() if k != 'csv-path'}
+
+        ctx.default_map = ctx.default_map or {}
+        ctx.default_map.update(normalized_config)
+    except Exception as e:
+        raise click.BadParameter(f"Error loading config file: {e}")
+
+    return value
+
 @click.group()
 @click.option('--debug', is_flag=True, help='Enables debug logging.')
 def cli(debug):
@@ -24,6 +61,7 @@ def cli(debug):
         logging.getLogger().setLevel(logging.DEBUG)
 
 @cli.command()
+@click.option('--config', type=click.Path(exists=True), callback=load_config, is_eager=True, expose_value=False, help='Path to INI or TOML config file.')
 @click.option('--csv-path', type=click.Path(exists=True), required=True, help='Path to the CSV file containing IDs.')
 @click.option('--output-dir', type=click.Path(), required=True, help='Target directory for downloaded files.')
 @click.option('--user', required=True, help='Oracle DB username.')
@@ -63,6 +101,7 @@ def download(csv_path, output_dir, user, password, dsn, table, id_column, clob_c
         sys.exit(1)
 
 @cli.command()
+@click.option('--config', type=click.Path(exists=True), callback=load_config, is_eager=True, expose_value=False, help='Path to INI or TOML config file.')
 @click.option('--csv-path', type=click.Path(exists=True), required=True, help='Path to the CSV file containing IDs.')
 @click.option('--input-dir', type=click.Path(exists=True), required=True, help='Source directory containing files to upload.')
 @click.option('--user', required=True, help='Oracle DB username.')
