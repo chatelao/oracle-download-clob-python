@@ -148,13 +148,18 @@ jobs:
         java-version: '21'
         cache: 'maven'
 
-    - name: Build Java Fat JAR and Native Image
+    - name: Build Java Fat JAR
       run: |
-        mvn package -Pnative -DskipTests
+        mvn package -DskipTests
         mkdir -p dist
         cp target/oracle-clob-tool.jar dist/oracle-clob-tool.jar
         cp target/oracle-clob-tool.jar dist/oracle-clob-tool-latest.jar
         cp target/oracle-clob-tool.jar dist/oracle-clob-tool-${{ github.ref_name }}.jar
+
+    - name: Build Java Native Image
+      continue-on-error: true
+      run: |
+        mvn package -Pnative -DskipTests
         if [ -f target/oracle-clob-tool ]; then
           cp target/oracle-clob-tool dist/oracle-clob-tool-java
         fi
