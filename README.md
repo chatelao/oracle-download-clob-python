@@ -17,6 +17,7 @@ Detailed documentation is available in the following files:
 - [DESIGN.md](DESIGN.md): Technical stack, interface definitions, and major design choices.
 - [ROADMAP.md](ROADMAP.md): Project implementation plan and progress.
 - [TECHNICAL_DEBTS.md](TECHNICAL_DEBTS.md): Logged technical debts and future improvements.
+- [JAVA_HOWTO_USE.md](JAVA_HOWTO_USE.md): **Java CLI Usage Guide**.
 
 Online documentation (ReadTheDocs): [Coming Soon]
 

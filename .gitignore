@@ -146,3 +146,6 @@ cython_debug/
 
 # PyCharm
 .idea/
+
+# Maven
+dependency-reduced-pom.xml
