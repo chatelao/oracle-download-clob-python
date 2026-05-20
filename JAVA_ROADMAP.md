@@ -9,8 +9,8 @@ This roadmap outlines the plan to port the CLOB Download and Upload Tool from Py
 | Phase 1 | Project Initialization & Environment Setup | ✅ |
 | Phase 2 | Core Component Implementation | ✅ |
 | Phase 3 | Orchestration & CLI Development | ✅ |
-| Phase 4 | Testing & Quality Assurance | 🏗️ |
-| Phase 5 | Packaging & Release | 🏗️ |
+| Phase 4 | Testing & Quality Assurance | ✅ |
+| Phase 5 | Packaging & Release | ✅ |
 | Phase 6 | Advanced Filtering & Optimization | ✅ |
 
 ## Goals
@@ -61,10 +61,10 @@ Ensuring the Java implementation is reliable and functionally equivalent to the 
 - [x] Write unit tests for all core components using JUnit 5 and Mockito ✅ 2026-05-16
 - [x] Implement integration tests using Testcontainers and Oracle Database Free ✅ 2026-05-19
 - [x] Perform functional parity checks between Python and Java versions ✅ 2026-05-19
-- [ ] **Code Quality**: Implement Checkstyle rules from `alpheusafpparser` ⏳
-    - [ ] Add `maven-checkstyle-plugin` to `pom.xml` ⏳
-    - [ ] Import `checkstyle.xml` from `alpheusafpparser` ⏳
-    - [ ] Fix existing checkstyle violations in Java code ⏳
+- [x] **Code Quality**: Implement Checkstyle rules from `alpheusafpparser` ✅ 2026-05-20
+    - [x] Add `maven-checkstyle-plugin` to `pom.xml` ✅ 2026-05-20
+    - [x] Import `checkstyle.xml` from `alpheusafpparser` ✅ 2026-05-20
+    - [x] Fix existing checkstyle violations in Java code ✅ 2026-05-20
 
 ### Phase 5: Packaging & Release
 Automating the build and distribution of the Java application.
@@ -72,9 +72,9 @@ Automating the build and distribution of the Java application.
 - [x] Configure Maven profiles for GraalVM Native Image compilation ✅ 2026-05-19
 - [x] Configure Maven for Fat JAR generation using `maven-shade-plugin` ✅ 2026-05-20
 - [x] Automate Fat JAR generation and release in CI pipeline ✅ 2026-05-20
-- [ ] Automate native executable generation in CI pipeline ⏳
+- [x] Automate native executable generation in CI pipeline ✅ 2026-05-20
 - [x] Update documentation with Java-specific installation and usage instructions ✅ 2026-05-19
-- [ ] Release Java version 1.0.0 ⏳
+- [x] Release Java version 1.0.0 ✅ 2026-05-20
 
 ### Phase 6: Advanced Filtering & Optimization
 Enhancing the tool's efficiency for varying dataset sizes.

@@ -8,38 +8,40 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Abstracts disk I/O and directory management.
+ * Manages directory and file operations.
  */
 public class FSManager {
 
-    /**
-     * Creates directory if it doesn't exist.
-     *
-     * @param path The directory path to ensure.
-     * @throws IOException If an I/O error occurs.
-     */
-    public void ensureDirectory(Path path) throws IOException {
-        Files.createDirectories(path);
+  /**
+   * Ensures the given directory exists, creating it if necessary.
+   *
+   * @param dirPath Path to the directory.
+   * @throws IOException If an I/O error occurs.
+   */
+  public void ensureDirectory(Path dirPath) throws IOException {
+    if (!Files.exists(dirPath)) {
+      Files.createDirectories(dirPath);
     }
+  }
 
-    /**
-     * Matches local files with IDs using a glob pattern.
-     *
-     * @param directory The directory to search in.
-     * @param pattern   The glob pattern (e.g., "*.txt").
-     * @return A list of matching paths.
-     * @throws IOException If an I/O error occurs.
-     */
-    public List<Path> listFiles(Path directory, String pattern) throws IOException {
-        List<Path> files = new ArrayList<>();
-        if (!Files.isDirectory(directory)) {
-            return files;
-        }
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory, pattern)) {
-            for (Path entry : stream) {
-                files.add(entry);
-            }
-        }
-        return files;
+  /**
+   * Returns a list of paths matching a pattern within a directory.
+   *
+   * @param dirPath Directory to search.
+   * @param pattern Glob pattern (e.g., "*.txt").
+   * @return List of matching Paths.
+   * @throws IOException If an I/O error occurs.
+   */
+  public List<Path> listFiles(Path dirPath, String pattern) throws IOException {
+    if (!Files.exists(dirPath)) {
+      return java.util.Collections.emptyList();
     }
+    try (DirectoryStream<Path> stream = Files.newDirectoryStream(dirPath, pattern)) {
+      List<Path> result = new ArrayList<>();
+      for (Path path : stream) {
+        result.add(path);
+      }
+      return result;
+    }
+  }
 }
