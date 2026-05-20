@@ -45,7 +45,7 @@ jobs:
     - name: Set up Java
       uses: actions/setup-java@v4
       with:
-        distribution: 'oracle-graalvm'
+        distribution: 'graalvm'
         java-version: '21'
         cache: 'maven'
 
@@ -144,7 +144,7 @@ jobs:
     - name: Set up Java
       uses: actions/setup-java@v4
       with:
-        distribution: 'oracle-graalvm'
+        distribution: 'graalvm'
         java-version: '21'
         cache: 'maven'
 
