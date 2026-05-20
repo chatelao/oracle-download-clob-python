@@ -90,6 +90,50 @@ java -jar target/oracle-clob-tool.jar upload \
 
 ---
 
+## Configuration Files
+
+The tool supports loading parameters from TOML or INI configuration files using the `--config` option. This is useful for storing database credentials and connection details.
+
+**Note:** Command-line arguments consistently override configuration file defaults. The `--csv-path` must always be provided via the command line.
+
+### TOML Example (`config.toml`)
+
+```toml
+user = "MYUSER"
+password = "MYPASS"
+dsn = "localhost:1521/FREEPDB1"
+table = "MY_TABLE"
+id-column = "ID"
+clob-column = "CONTENT"
+gtt-name = "GTT_IDS"
+```
+
+### INI Example (`config.ini`)
+
+The tool looks for settings under the `[oracle-clob-tool]` or `[DEFAULT]` section.
+
+```ini
+[oracle-clob-tool]
+user = MYUSER
+password = MYPASS
+dsn = localhost:1521/FREEPDB1
+table = MY_TABLE
+id-column = ID
+clob-column = CONTENT
+gtt-name = GTT_IDS
+```
+
+### Usage with Config File
+
+```bash
+java -jar target/oracle-clob-tool.jar download \
+    --config config.toml \
+    --csv-path ids.csv \
+    --output-dir ./output
+```
+
+---
+
 ## Performance Tip: Dual ID Filtering
 
 The tool automatically optimizes ID filtering based on the number of records in your CSV:
