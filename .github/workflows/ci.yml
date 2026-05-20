@@ -150,7 +150,7 @@ jobs:
 
     - name: Build Java Fat JAR
       run: |
-        mvn package -DskipTests
+        mvn clean package -DskipTests
         mkdir -p dist
         cp target/oracle-clob-tool.jar dist/oracle-clob-tool.jar
         cp target/oracle-clob-tool.jar dist/oracle-clob-tool-latest.jar
@@ -159,7 +159,7 @@ jobs:
     - name: Build Java Native Image
       continue-on-error: true
       run: |
-        mvn package -Pnative -DskipTests
+        mvn clean package -Pnative -DskipTests
         if [ -f target/oracle-clob-tool ]; then
           cp target/oracle-clob-tool dist/oracle-clob-tool-java
         fi
@@ -167,11 +167,8 @@ jobs:
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
+        fail_on_unmatched_files: false
         files: |
-          dist/oracle-clob-tool
-          dist/oracle-clob-tool-java
-          dist/oracle-clob-tool.jar
-          dist/oracle-clob-tool-latest.jar
-          dist/oracle-clob-tool-${{ github.ref_name }}.jar
+          dist/*
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
