@@ -151,6 +151,8 @@ jobs:
     - name: Build Java Fat JAR and Native Image
       run: |
         mvn package -Pnative -DskipTests
+        mkdir -p dist
+        cp target/oracle-clob-tool.jar dist/oracle-clob-tool.jar
         cp target/oracle-clob-tool.jar dist/oracle-clob-tool-latest.jar
         cp target/oracle-clob-tool.jar dist/oracle-clob-tool-${{ github.ref_name }}.jar
         if [ -f target/oracle-clob-tool ]; then
@@ -163,6 +165,7 @@ jobs:
         files: |
           dist/oracle-clob-tool
           dist/oracle-clob-tool-java
+          dist/oracle-clob-tool.jar
           dist/oracle-clob-tool-latest.jar
           dist/oracle-clob-tool-${{ github.ref_name }}.jar
       env:
