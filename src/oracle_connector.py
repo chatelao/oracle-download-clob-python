@@ -11,6 +11,7 @@ class DBConfig:
     id_column: str
     clob_column: str
     gtt_name: str = "GTT_IDS"
+    query: Optional[str] = None
 
 class OracleConnector:
     """Manages connection lifecycle and executes SQL."""
@@ -67,9 +68,10 @@ class OracleConnector:
         if not self.conn or not self.config:
             raise RuntimeError("Database not connected")
 
+        source = f"({self.config.query})" if self.config.query else self.config.target_table
         sql = f"""
             SELECT t.{self.config.id_column}, t.{self.config.clob_column}
-            FROM {self.config.target_table} t
+            FROM {source} t
             JOIN {self.config.gtt_name} g ON t.{self.config.id_column} = g.{self.config.id_column}
         """
 
@@ -90,10 +92,11 @@ class OracleConnector:
         if not ids:
             return
 
+        source = f"({self.config.query})" if self.config.query else self.config.target_table
         binds = [f":{i+1}" for i in range(len(ids))]
         sql = f"""
             SELECT {self.config.id_column}, {self.config.clob_column}
-            FROM {self.config.target_table}
+            FROM {source}
             WHERE {self.config.id_column} IN ({', '.join(binds)})
         """
 

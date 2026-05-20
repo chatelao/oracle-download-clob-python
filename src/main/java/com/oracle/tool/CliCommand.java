@@ -78,8 +78,11 @@ public class CliCommand implements Runnable {
     @Option(names = "--dsn", required = true, description = "Oracle DB DSN.")
     String dsn;
 
-    @Option(names = "--table", required = true, description = "Target table name.")
+    @Option(names = "--table", required = false, description = "Target table name.")
     String table;
+
+    @Option(names = "--query", required = false, description = "User written SELECT statement.")
+    String query;
 
     @Option(names = "--id-column", required = true, description = "Column name for IDs.")
     String idColumn;
@@ -96,9 +99,16 @@ public class CliCommand implements Runnable {
       if (parent != null && parent.debug) {
         configureDebugLogging();
       }
+
+      if ((table == null || table.isEmpty()) && (query == null || query.isEmpty())) {
+        spec.commandLine().getErr().println("Error: Either --table or --query must be provided.");
+        spec.commandLine().usage(spec.commandLine().getErr());
+        return 1;
+      }
+
       try {
         DBConfig dbConfig = new DBConfig(user, password, dsn, table,
-            idColumn, clobColumn, gttName);
+            idColumn, clobColumn, gttName, query);
         Orchestrator orchestrator = createOrchestrator();
 
         logger.info("Starting download mode. CSV: {}, Output: {}", csvPath, outputDir);
