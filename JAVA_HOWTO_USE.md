@@ -54,7 +54,8 @@ java -jar target/oracle-clob-tool.jar download \
 | `--user` | Yes | Oracle DB username. | |
 | `--password` | Yes | Oracle DB password. | |
 | `--dsn` | Yes | Oracle DB DSN (e.g., `host:port/service`). | |
-| `--table` | Yes | Target table name. | |
+| `--table` | No | Target table name (required if `--query` is not provided). | |
+| `--query` | No | User written SELECT statement (required if `--table` is not provided). | |
 | `--id-column` | Yes | Column name for IDs. | |
 | `--clob-column` | Yes | Column name for CLOBs. | |
 | `--gtt-name` | No | Name of the Global Temporary Table. | `GTT_IDS` |
@@ -102,7 +103,10 @@ The tool supports loading parameters from TOML or INI configuration files using 
 user = "MYUSER"
 password = "MYPASS"
 dsn = "localhost:1521/FREEPDB1"
+# Use table:
 table = "MY_TABLE"
+# OR use query:
+# query = "SELECT * FROM MY_TABLE WHERE STATUS = 'ACTIVE'"
 id-column = "ID"
 clob-column = "CONTENT"
 gtt-name = "GTT_IDS"
@@ -118,6 +122,7 @@ user = MYUSER
 password = MYPASS
 dsn = localhost:1521/FREEPDB1
 table = MY_TABLE
+# query = SELECT * FROM MY_TABLE WHERE STATUS = 'ACTIVE'
 id-column = ID
 clob-column = CONTENT
 gtt-name = GTT_IDS

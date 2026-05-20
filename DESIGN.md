@@ -48,7 +48,7 @@ The following technologies have been selected for the implementation, production
 - **Methods:**
   - `connect(config: DBConfig)`: Establishes connection using `python-oracledb`.
   - `create_gtt(ids: List[str])`: Populates the Global Temporary Table with IDs.
-  - `fetch_clobs_join() -> Iterator[Tuple[str, LOB]]`: Executes the JOIN query and yields CLOB objects.
+  - `fetch_clobs_join() -> Iterator[Tuple[str, LOB]]`: Executes the JOIN query and yields CLOB objects. Supports using a custom query as a subquery.
   - `update_clob(id: str, content: str)`: Updates a specific record with new CLOB data.
 
 #### 3. CLOB Processor (`CLOBProcessor` class)

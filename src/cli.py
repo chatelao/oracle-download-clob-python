@@ -67,12 +67,16 @@ def cli(debug):
 @click.option('--user', required=True, help='Oracle DB username.')
 @click.option('--password', required=True, help='Oracle DB password.')
 @click.option('--dsn', required=True, help='Oracle DB DSN.')
-@click.option('--table', required=True, help='Target table name.')
+@click.option('--table', required=False, help='Target table name.')
+@click.option('--query', required=False, help='User written SELECT statement.')
 @click.option('--id-column', required=True, help='Column name for IDs.')
 @click.option('--clob-column', required=True, help='Column name for CLOBs.')
 @click.option('--gtt-name', default="GTT_IDS", help='Name of the Global Temporary Table.')
-def download(csv_path, output_dir, user, password, dsn, table, id_column, clob_column, gtt_name):
+def download(csv_path, output_dir, user, password, dsn, table, query, id_column, clob_column, gtt_name):
     """Download CLOBs to local files."""
+    if not table and not query:
+        raise click.UsageError("Either --table or --query must be provided.")
+
     try:
         db_config = DBConfig(
             user=user,
@@ -81,7 +85,8 @@ def download(csv_path, output_dir, user, password, dsn, table, id_column, clob_c
             target_table=table,
             id_column=id_column,
             clob_column=clob_column,
-            gtt_name=gtt_name
+            gtt_name=gtt_name,
+            query=query
         )
 
         orchestrator = Orchestrator(

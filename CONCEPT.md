@@ -14,10 +14,11 @@ Allow to download and upload CLOB fields from/to files, based on a .csv list of 
 - **Preconditions:** Oracle database is accessible; CSV file with target IDs exists.
 - **Flow:**
   1. Provide path to the CSV file containing the IDs.
-  2. Provide the target directory for the downloaded files.
-  3. System connects to Oracle.
-  4. System reads IDs and fetches corresponding CLOB data.
-  5. System saves each CLOB into a file named after its ID.
+  2. Provide either the target table name or a custom SELECT statement.
+  3. Provide the target directory for the downloaded files.
+  4. System connects to Oracle.
+  5. System reads IDs and fetches corresponding CLOB data.
+  6. System saves each CLOB into a file named after its ID.
 - **Postconditions:** Files are created in the target directory for all found IDs.
 
 ### UC-2: Upload Files to CLOBs
