@@ -70,6 +70,8 @@ Ensuring the Java implementation is reliable and functionally equivalent to the 
 Automating the build and distribution of the Java application.
 
 - [x] Configure Maven profiles for GraalVM Native Image compilation ✅ 2026-05-19
+- [x] Configure Maven for Fat JAR generation using `maven-shade-plugin` ✅ 2026-05-20
+- [x] Automate Fat JAR generation and release in CI pipeline ✅ 2026-05-20
 - [ ] Automate native executable generation in CI pipeline ⏳
 - [x] Update documentation with Java-specific installation and usage instructions ✅ 2026-05-19
 - [ ] Release Java version 1.0.0 ⏳

@@ -141,9 +141,25 @@ jobs:
       run: |
         pyinstaller --onefile --name oracle-clob-tool --paths . src/cli.py
 
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        cache: 'maven'
+
+    - name: Build Java Fat JAR
+      run: |
+        mvn package -DskipTests
+        cp target/oracle-clob-tool.jar dist/oracle-clob-tool-latest.jar
+        cp target/oracle-clob-tool.jar dist/oracle-clob-tool-${{ github.ref_name }}.jar
+
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
-        files: dist/oracle-clob-tool
+        files: |
+          dist/oracle-clob-tool
+          dist/oracle-clob-tool-latest.jar
+          dist/oracle-clob-tool-${{ github.ref_name }}.jar
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
