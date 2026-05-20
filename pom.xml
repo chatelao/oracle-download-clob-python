@@ -126,13 +126,12 @@
               <goal>shade</goal>
             </goals>
             <configuration>
+              <finalName>oracle-clob-tool</finalName>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>com.oracle.tool.CliCommand</mainClass>
                 </transformer>
               </transformers>
-              <finalName>oracle-clob-tool</finalName>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
             </configuration>
           </execution>
         </executions>
