@@ -108,6 +108,24 @@ java -jar target/oracle-clob-tool.jar upload \
 | `--table` | Yes | Target table name. |
 | `--id-column` | Yes | Column name for IDs. |
 | `--clob-column, --lob-column` | Yes | Column name for CLOBs or BLOBs. |
+| `--id-as-regex` | No | Treat IDs as regex patterns to match filenames. |
+
+#### Regex Matching for Upload
+
+By default, the tool matches IDs in the CSV directly to filenames (e.g., ID `123` matches `123.txt`). If you use the `--id-as-regex` flag, the IDs in the CSV are treated as regex patterns.
+
+- If the regex contains capturing groups, the **first capturing group** is used as the database ID.
+- Otherwise, the **full match** is used as the database ID.
+
+Example: If your CSV contains `([0-9]+)_data` and your directory has `123_data.txt`, it will match and use `123` as the ID.
+
+```bash
+java -jar target/oracle-clob-tool.jar upload \
+    --csv-path patterns.csv \
+    --input-dir ./input \
+    --config db.toml \
+    --id-as-regex
+```
 
 ---
 
@@ -132,6 +150,7 @@ clob-column = "CONTENT"
 # lob-column = "CONTENT" # Alias for clob-column
 filename-column = "TARGET_NAME"
 gtt-name = "GTT_IDS"
+id-as-regex = true
 ```
 
 ### INI Example (`config.ini`)
@@ -150,6 +169,7 @@ clob-column = CONTENT
 # lob-column = CONTENT
 filename-column = TARGET_NAME
 gtt-name = GTT_IDS
+id-as-regex = true
 ```
 
 ### Usage with Config File
