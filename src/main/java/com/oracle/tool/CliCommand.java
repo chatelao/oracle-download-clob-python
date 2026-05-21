@@ -91,6 +91,10 @@ public class CliCommand implements Runnable {
         description = "Column name for CLOBs or BLOBs.")
     String clobColumn;
 
+    @Option(names = "--filename-column", required = false,
+        description = "Column name for filenames.")
+    String filenameColumn;
+
     @Option(names = "--gtt-name", defaultValue = "GTT_IDS",
         description = "Name of the Global Temporary Table.")
     private String gttName;
@@ -109,7 +113,7 @@ public class CliCommand implements Runnable {
 
       try {
         DBConfig dbConfig = new DBConfig(user, password, dsn, table,
-            idColumn, clobColumn, gttName, query);
+            idColumn, clobColumn, gttName, query, filenameColumn);
         Orchestrator orchestrator = createOrchestrator();
 
         logger.info("Starting download mode. CSV: {}, Output: {}", csvPath, outputDir);

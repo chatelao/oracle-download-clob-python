@@ -68,7 +68,11 @@ public class Orchestrator {
       try (clobStream) {
         Iterable<LobRecord> iterable = clobStream::iterator;
         for (LobRecord record : iterable) {
-          Path targetPath = outputDir.resolve(record.id() + ".txt");
+          String fileName = record.filename();
+          if (fileName == null || fileName.isEmpty()) {
+            fileName = record.id() + ".txt";
+          }
+          Path targetPath = outputDir.resolve(fileName);
           clobProcessor.streamToFile(record.lob(), targetPath);
         }
       } catch (RuntimeException ex) {

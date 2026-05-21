@@ -110,15 +110,21 @@ public class OracleConnector implements AutoCloseable {
 
     String source = (config.query() != null && !config.query().isEmpty())
         ? "(" + config.query() + ")" : config.targetTable();
+
+    String columns = String.format("t.%s, t.%s", config.idColumn(), config.clobColumn());
+    if (config.filenameColumn() != null && !config.filenameColumn().isEmpty()) {
+      columns += ", t." + config.filenameColumn();
+    }
+
     String sql = String.format(
-        "SELECT t.%s, t.%s FROM %s t JOIN %s g ON t.%s = g.%s",
-        config.idColumn(), config.clobColumn(), source,
-        config.gttName(), config.idColumn(), config.idColumn()
+        "SELECT %s FROM %s t JOIN %s g ON t.%s = g.%s",
+        columns, source, config.gttName(), config.idColumn(), config.idColumn()
     );
 
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     final int columnType = rs.getMetaData().getColumnType(2);
+    final boolean hasFilename = config.filenameColumn() != null && !config.filenameColumn().isEmpty();
 
     return StreamSupport.stream(new Spliterators.AbstractSpliterator<LobRecord>(
         Long.MAX_VALUE, 0) {
@@ -136,7 +142,9 @@ public class OracleConnector implements AutoCloseable {
           } else {
             lob = rs.getObject(2);
           }
-          action.accept(new LobRecord(rs.getString(1), lob));
+          String id = rs.getString(1);
+          String filename = hasFilename ? rs.getString(3) : null;
+          action.accept(new LobRecord(id, lob, filename));
           return true;
         } catch (SQLException ex) {
           throw new RuntimeException(ex);
@@ -170,10 +178,16 @@ public class OracleConnector implements AutoCloseable {
 
     String source = (config.query() != null && !config.query().isEmpty())
         ? "(" + config.query() + ")" : config.targetTable();
+
     StringBuilder sqlBuilder = new StringBuilder();
     sqlBuilder.append("SELECT ").append(config.idColumn())
-        .append(", ").append(config.clobColumn())
-        .append(" FROM ").append(source)
+        .append(", ").append(config.clobColumn());
+
+    if (config.filenameColumn() != null && !config.filenameColumn().isEmpty()) {
+      sqlBuilder.append(", ").append(config.filenameColumn());
+    }
+
+    sqlBuilder.append(" FROM ").append(source)
         .append(" WHERE ").append(config.idColumn())
         .append(" IN (");
 
@@ -192,6 +206,7 @@ public class OracleConnector implements AutoCloseable {
 
     ResultSet rs = pstmt.executeQuery();
     final int columnType = rs.getMetaData().getColumnType(2);
+    final boolean hasFilename = config.filenameColumn() != null && !config.filenameColumn().isEmpty();
 
     return StreamSupport.stream(new Spliterators.AbstractSpliterator<LobRecord>(
         Long.MAX_VALUE, 0) {
@@ -209,7 +224,9 @@ public class OracleConnector implements AutoCloseable {
           } else {
             lob = rs.getObject(2);
           }
-          action.accept(new LobRecord(rs.getString(1), lob));
+          String id = rs.getString(1);
+          String filename = hasFilename ? rs.getString(3) : null;
+          action.accept(new LobRecord(id, lob, filename));
           return true;
         } catch (SQLException ex) {
           throw new RuntimeException(ex);

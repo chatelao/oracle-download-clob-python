@@ -11,14 +11,15 @@ public record DBConfig(
     String idColumn,
     String clobColumn,
     String gttName,
-    String query
+    String query,
+    String filenameColumn
 ) {
   /**
    * Secondary constructor with default GTT name.
    */
   public DBConfig(String user, String password, String dsn, String targetTable,
       String idColumn, String clobColumn) {
-    this(user, password, dsn, targetTable, idColumn, clobColumn, "GTT_IDS", null);
+    this(user, password, dsn, targetTable, idColumn, clobColumn, "GTT_IDS", null, null);
   }
 
   /**
@@ -26,6 +27,14 @@ public record DBConfig(
    */
   public DBConfig(String user, String password, String dsn, String targetTable,
       String idColumn, String clobColumn, String gttName) {
-    this(user, password, dsn, targetTable, idColumn, clobColumn, gttName, null);
+    this(user, password, dsn, targetTable, idColumn, clobColumn, gttName, null, null);
+  }
+
+  /**
+   * Quaternary constructor with all fields but filenameColumn.
+   */
+  public DBConfig(String user, String password, String dsn, String targetTable,
+      String idColumn, String clobColumn, String gttName, String query) {
+    this(user, password, dsn, targetTable, idColumn, clobColumn, gttName, query, null);
   }
 }
