@@ -57,8 +57,28 @@ java -jar target/oracle-clob-tool.jar download \
 | `--table` | No | Target table name (required if `--query` is not provided). | |
 | `--query` | No | User written SELECT statement (required if `--table` is not provided). | |
 | `--id-column` | Yes | Column name for IDs. | |
-| `--clob-column` | Yes | Column name for CLOBs. | |
+| `--clob-column, --lob-column` | Yes | Column name for CLOBs or BLOBs. | |
+| `--filename-column` | No | Column name for custom filenames. | |
 | `--gtt-name` | No | Name of the Global Temporary Table. | `GTT_IDS` |
+
+#### Using Custom Filenames from a Query
+
+When downloading, you can specify a column to be used as the filename for each LOB. If `--filename-column` is not provided, the tool defaults to using the record ID with a `.txt` extension.
+
+This is particularly powerful when combined with the `--query` option:
+
+```bash
+java -jar target/oracle-clob-tool.jar download \
+    --csv-path ids.csv \
+    --output-dir ./output \
+    --user MYUSER \
+    --password MYPASS \
+    --dsn localhost:1521/FREEPDB1 \
+    --query "SELECT ID, CONTENT, FILE_NAME || '.pdf' as TARGET_NAME FROM MY_TABLE" \
+    --id-column ID \
+    --clob-column CONTENT \
+    --filename-column TARGET_NAME
+```
 
 ### 2. Upload Local Files to Oracle CLOBs
 
@@ -87,7 +107,7 @@ java -jar target/oracle-clob-tool.jar upload \
 | `--dsn` | Yes | Oracle DB DSN (e.g., `host:port/service`). |
 | `--table` | Yes | Target table name. |
 | `--id-column` | Yes | Column name for IDs. |
-| `--clob-column` | Yes | Column name for CLOBs. |
+| `--clob-column, --lob-column` | Yes | Column name for CLOBs or BLOBs. |
 
 ---
 
@@ -109,6 +129,8 @@ table = "MY_TABLE"
 # query = "SELECT * FROM MY_TABLE WHERE STATUS = 'ACTIVE'"
 id-column = "ID"
 clob-column = "CONTENT"
+# lob-column = "CONTENT" # Alias for clob-column
+filename-column = "TARGET_NAME"
 gtt-name = "GTT_IDS"
 ```
 
@@ -125,6 +147,8 @@ table = MY_TABLE
 # query = SELECT * FROM MY_TABLE WHERE STATUS = 'ACTIVE'
 id-column = ID
 clob-column = CONTENT
+# lob-column = CONTENT
+filename-column = TARGET_NAME
 gtt-name = GTT_IDS
 ```
 
