@@ -63,4 +63,15 @@ public class CLOBProcessor {
   public Reader openFile(Path sourcePath) throws IOException {
     return Files.newBufferedReader(sourcePath, StandardCharsets.UTF_8);
   }
+
+  /**
+   * Opens a file for reading as a binary stream.
+   *
+   * @param sourcePath Path to the source file.
+   * @return InputStream for the file.
+   * @throws IOException If an I/O error occurs.
+   */
+  public InputStream openFileAsStream(Path sourcePath) throws IOException {
+    return Files.newInputStream(sourcePath);
+  }
 }

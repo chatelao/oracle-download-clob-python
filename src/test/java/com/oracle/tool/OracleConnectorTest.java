@@ -13,8 +13,10 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -33,6 +35,8 @@ class OracleConnectorTest {
     private PreparedStatement preparedStatement;
     @Mock
     private ResultSet resultSet;
+    @Mock
+    private ResultSetMetaData resultSetMetaData;
 
     private OracleConnector connector;
     private DBConfig config;
@@ -105,6 +109,8 @@ class OracleConnectorTest {
 
             when(connection.createStatement()).thenReturn(statement);
             when(statement.executeQuery(anyString())).thenReturn(resultSet);
+            when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+            when(resultSetMetaData.getColumnType(2)).thenReturn(Types.CLOB);
             when(resultSet.next()).thenReturn(true, false);
             when(resultSet.getString(1)).thenReturn("1");
 
@@ -126,6 +132,8 @@ class OracleConnectorTest {
 
             when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
             when(preparedStatement.executeQuery()).thenReturn(resultSet);
+            when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+            when(resultSetMetaData.getColumnType(2)).thenReturn(Types.CLOB);
             when(resultSet.next()).thenReturn(true, false);
             when(resultSet.getString(1)).thenReturn("1");
 
@@ -152,6 +160,8 @@ class OracleConnectorTest {
 
             when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
             when(preparedStatement.executeQuery()).thenReturn(resultSet);
+            when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+            when(resultSetMetaData.getColumnType(2)).thenReturn(Types.CLOB);
             when(resultSet.next()).thenReturn(true, false);
             when(resultSet.getString(1)).thenReturn("1");
 
@@ -178,7 +188,7 @@ class OracleConnectorTest {
     }
 
     @Test
-    void updateClob_Success() throws SQLException {
+    void updateLob_ClobSuccess() throws SQLException {
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
             driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
                     .thenReturn(connection);
@@ -187,7 +197,7 @@ class OracleConnectorTest {
             when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
 
             Reader reader = new StringReader("content");
-            connector.updateClob("1", reader);
+            connector.updateLob("1", reader);
 
             verify(preparedStatement).setCharacterStream(eq(1), eq(reader));
             verify(preparedStatement).setString(eq(2), eq("1"));

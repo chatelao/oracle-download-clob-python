@@ -1,10 +1,12 @@
 package com.oracle.tool;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -99,11 +101,20 @@ public class Orchestrator {
 
     dbConnector.connect(dbConfig);
     try {
+      int columnType = dbConnector.getLobColumnType();
+      boolean isBinary = (columnType == Types.BLOB);
+
       for (String idVal : ids) {
         Path filePath = inputDir.resolve(idVal + ".txt");
         if (Files.exists(filePath)) {
-          try (Reader reader = clobProcessor.openFile(filePath)) {
-            dbConnector.updateClob(idVal, reader);
+          if (isBinary) {
+            try (InputStream is = clobProcessor.openFileAsStream(filePath)) {
+              dbConnector.updateLob(idVal, is);
+            }
+          } else {
+            try (Reader reader = clobProcessor.openFile(filePath)) {
+              dbConnector.updateLob(idVal, reader);
+            }
           }
         } else {
           logger.warn("File not found for ID {}: {}", idVal, filePath);

@@ -1,5 +1,6 @@
 package com.oracle.tool;
 
+import java.io.InputStream;
 import java.io.Reader;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -7,6 +8,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.List;
 import java.util.Spliterators;
 import java.util.stream.Stream;
@@ -116,6 +118,7 @@ public class OracleConnector implements AutoCloseable {
 
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
+    final int columnType = rs.getMetaData().getColumnType(2);
 
     return StreamSupport.stream(new Spliterators.AbstractSpliterator<LobRecord>(
         Long.MAX_VALUE, 0) {
@@ -125,7 +128,15 @@ public class OracleConnector implements AutoCloseable {
           if (!rs.next()) {
             return false;
           }
-          action.accept(new LobRecord(rs.getString(1), rs.getObject(2)));
+          Object lob;
+          if (columnType == Types.CLOB || columnType == Types.NCLOB) {
+            lob = rs.getClob(2);
+          } else if (columnType == Types.BLOB) {
+            lob = rs.getBlob(2);
+          } else {
+            lob = rs.getObject(2);
+          }
+          action.accept(new LobRecord(rs.getString(1), lob));
           return true;
         } catch (SQLException ex) {
           throw new RuntimeException(ex);
@@ -180,6 +191,7 @@ public class OracleConnector implements AutoCloseable {
     }
 
     ResultSet rs = pstmt.executeQuery();
+    final int columnType = rs.getMetaData().getColumnType(2);
 
     return StreamSupport.stream(new Spliterators.AbstractSpliterator<LobRecord>(
         Long.MAX_VALUE, 0) {
@@ -189,7 +201,15 @@ public class OracleConnector implements AutoCloseable {
           if (!rs.next()) {
             return false;
           }
-          action.accept(new LobRecord(rs.getString(1), rs.getObject(2)));
+          Object lob;
+          if (columnType == Types.CLOB || columnType == Types.NCLOB) {
+            lob = rs.getClob(2);
+          } else if (columnType == Types.BLOB) {
+            lob = rs.getBlob(2);
+          } else {
+            lob = rs.getObject(2);
+          }
+          action.accept(new LobRecord(rs.getString(1), lob));
           return true;
         } catch (SQLException ex) {
           throw new RuntimeException(ex);
@@ -206,13 +226,13 @@ public class OracleConnector implements AutoCloseable {
   }
 
   /**
-   * Updates a specific record with new CLOB data.
+   * Updates a specific record with new LOB data.
    *
    * @param id      Record ID.
-   * @param content Reader providing CLOB content.
+   * @param content Reader or InputStream providing LOB content.
    * @throws SQLException If a database access error occurs.
    */
-  public void updateClob(String id, Reader content) throws SQLException {
+  public void updateLob(String id, Object content) throws SQLException {
     if (conn == null) {
       throw new SQLException("Database not connected");
     }
@@ -223,9 +243,34 @@ public class OracleConnector implements AutoCloseable {
     );
 
     try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-      pstmt.setCharacterStream(1, content);
+      if (content instanceof Reader reader) {
+        pstmt.setCharacterStream(1, reader);
+      } else if (content instanceof InputStream is) {
+        pstmt.setBinaryStream(1, is);
+      } else {
+        pstmt.setObject(1, content);
+      }
       pstmt.setString(2, id);
       pstmt.executeUpdate();
+    }
+  }
+
+  /**
+   * Determines the SQL type of the LOB column.
+   *
+   * @return SQL type from java.sql.Types.
+   * @throws SQLException If a database access error occurs.
+   */
+  public int getLobColumnType() throws SQLException {
+    if (conn == null) {
+      throw new SQLException("Database not connected");
+    }
+    String source = (config.query() != null && !config.query().isEmpty())
+        ? "(" + config.query() + ")" : config.targetTable();
+    String sql = String.format("SELECT %s FROM %s WHERE 1=0", config.clobColumn(), source);
+    try (Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(sql)) {
+      return rs.getMetaData().getColumnType(1);
     }
   }
 
