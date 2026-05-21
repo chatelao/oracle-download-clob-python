@@ -36,9 +36,13 @@ def test_download_mode_large_dataset(orchestrator, mock_managers, db_config, tmp
 
     ids = [str(i) for i in range(1001)]
     mock_managers["input"].load_ids.return_value = ids
-    mock_managers["db"].fetch_clobs_join.return_value = []
+    mock_managers["db"].fetch_clobs_join.return_value = [("1", MagicMock())]
 
-    orchestrator.download_mode(csv_path, output_dir, db_config)
+    mock_reporter = MagicMock()
+    orchestrator.download_mode(csv_path, output_dir, db_config, reporter=mock_reporter)
+
+    mock_reporter.set_total.assert_called_once_with(1001)
+    mock_reporter.update.assert_called_once_with(1)
 
     mock_managers["db"].create_gtt.assert_called_once_with(ids)
     mock_managers["db"].fetch_clobs_join.assert_called_once()
@@ -50,9 +54,13 @@ def test_download_mode_small_dataset(orchestrator, mock_managers, db_config, tmp
 
     ids = ["1", "2"]
     mock_managers["input"].load_ids.return_value = ids
-    mock_managers["db"].fetch_clobs_in.return_value = []
+    mock_managers["db"].fetch_clobs_in.return_value = [("1", MagicMock()), ("2", MagicMock())]
 
-    orchestrator.download_mode(csv_path, output_dir, db_config)
+    mock_reporter = MagicMock()
+    orchestrator.download_mode(csv_path, output_dir, db_config, reporter=mock_reporter)
+
+    mock_reporter.set_total.assert_called_once_with(2)
+    assert mock_reporter.update.call_count == 2
 
     mock_managers["db"].create_gtt.assert_not_called()
     mock_managers["db"].fetch_clobs_join.assert_not_called()

@@ -45,10 +45,30 @@ public class Orchestrator {
    */
   public void downloadMode(Path csvPath, Path outputDir, DBConfig dbConfig)
       throws IOException, SQLException {
+    downloadMode(csvPath, outputDir, dbConfig, null);
+  }
+
+  /**
+   * Orchestrates UC-1: Download CLOBs with progress reporting.
+   *
+   * @param csvPath   Path to the CSV file containing IDs.
+   * @param outputDir Directory where CLOBs will be saved.
+   * @param dbConfig  Database configuration.
+   * @param reporter  Progress reporter (optional).
+   * @throws IOException  If an I/O error occurs.
+   * @throws SQLException If a database access error occurs.
+   */
+  public void downloadMode(Path csvPath, Path outputDir, DBConfig dbConfig,
+      ProgressReporter reporter)
+      throws IOException, SQLException {
     List<String> ids = inputManager.loadIds(csvPath);
     if (ids.isEmpty()) {
       logger.info("No IDs found in CSV file.");
       return;
+    }
+
+    if (reporter != null) {
+      reporter.setTotal(ids.size());
     }
 
     dbConnector.connect(dbConfig);
@@ -74,6 +94,9 @@ public class Orchestrator {
           }
           Path targetPath = outputDir.resolve(fileName);
           clobProcessor.streamToFile(record.lob(), targetPath);
+          if (reporter != null) {
+            reporter.update(1);
+          }
         }
       } catch (RuntimeException ex) {
         if (ex.getCause() instanceof SQLException sqlException) {
