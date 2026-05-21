@@ -11,6 +11,7 @@ import org.testcontainers.utility.DockerImageName;
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.file.Files;
+import java.sql.Clob;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -137,11 +138,11 @@ class OracleIntegrationTest {
         List<String> ids = List.of("1", "2");
         connector.createGtt(ids);
 
-        try (Stream<ClobRecord> results = connector.fetchClobsJoin()) {
-            List<ClobRecord> list = results.toList();
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            List<LobRecord> list = results.toList();
             assertEquals(2, list.size());
 
-            List<String> resultIds = list.stream().map(ClobRecord::id).sorted().toList();
+            List<String> resultIds = list.stream().map(LobRecord::id).sorted().toList();
             assertTrue(resultIds.contains("1"));
             assertTrue(resultIds.contains("2"));
         }
@@ -159,11 +160,11 @@ class OracleIntegrationTest {
 
         // Verify
         connector.createGtt(List.of(targetId));
-        try (Stream<ClobRecord> results = connector.fetchClobsJoin()) {
-            ClobRecord record = results.findFirst().orElseThrow();
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            LobRecord record = results.findFirst().orElseThrow();
             assertEquals(targetId, record.id());
 
-            try (Reader r = record.clob().getCharacterStream()) {
+            try (Reader r = ((Clob) record.lob()).getCharacterStream()) {
                 StringBuilder sb = new StringBuilder();
                 int charRead;
                 while ((charRead = r.read()) != -1) {
@@ -185,9 +186,9 @@ class OracleIntegrationTest {
         }
 
         connector.createGtt(List.of(targetId));
-        try (Stream<ClobRecord> results = connector.fetchClobsJoin()) {
-            ClobRecord record = results.findFirst().orElseThrow();
-            try (Reader r = record.clob().getCharacterStream()) {
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            LobRecord record = results.findFirst().orElseThrow();
+            try (Reader r = ((Clob) record.lob()).getCharacterStream()) {
                 StringBuilder sb = new StringBuilder();
                 char[] buffer = new char[8192];
                 int charsRead;
@@ -209,13 +210,13 @@ class OracleIntegrationTest {
         }
 
         connector.createGtt(List.of(targetId));
-        try (Stream<ClobRecord> results = connector.fetchClobsJoin()) {
-            ClobRecord record = results.findFirst().orElseThrow();
-            if (record.clob() == null) {
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            LobRecord record = results.findFirst().orElseThrow();
+            if (record.lob() == null) {
                 // Oracle might return null for empty CLOB depending on how it's handled
                 return;
             }
-            try (Reader r = record.clob().getCharacterStream()) {
+            try (Reader r = ((Clob) record.lob()).getCharacterStream()) {
                 assertEquals(-1, r.read());
             }
         }
@@ -232,9 +233,9 @@ class OracleIntegrationTest {
         }
 
         connector.createGtt(List.of(targetId));
-        try (Stream<ClobRecord> results = connector.fetchClobsJoin()) {
-            ClobRecord record = results.findFirst().orElseThrow();
-            try (Reader r = record.clob().getCharacterStream()) {
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            LobRecord record = results.findFirst().orElseThrow();
+            try (Reader r = ((Clob) record.lob()).getCharacterStream()) {
                 StringBuilder sb = new StringBuilder();
                 int charRead;
                 while ((charRead = r.read()) != -1) {
@@ -248,7 +249,7 @@ class OracleIntegrationTest {
     @Test
     void testNonExistentId() throws SQLException {
         connector.createGtt(List.of("non-existent-999"));
-        try (Stream<ClobRecord> results = connector.fetchClobsJoin()) {
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
             assertEquals(0, results.count());
         }
     }
@@ -258,10 +259,10 @@ class OracleIntegrationTest {
         // Use IDs 7, 8, 9
         List<String> ids = List.of("7", "8", "9");
         connector.createGtt(ids);
-        try (Stream<ClobRecord> results = connector.fetchClobsJoin()) {
-            List<ClobRecord> list = results.toList();
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            List<LobRecord> list = results.toList();
             assertEquals(3, list.size());
-            List<String> resultIds = list.stream().map(ClobRecord::id).toList();
+            List<String> resultIds = list.stream().map(LobRecord::id).toList();
             assertTrue(resultIds.containsAll(ids));
         }
     }

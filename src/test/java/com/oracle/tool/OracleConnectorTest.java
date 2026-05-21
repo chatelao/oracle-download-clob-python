@@ -108,9 +108,9 @@ class OracleConnectorTest {
             when(resultSet.next()).thenReturn(true, false);
             when(resultSet.getString(1)).thenReturn("1");
 
-            Stream<ClobRecord> stream = connector.fetchClobsJoin();
+            Stream<LobRecord> stream = connector.fetchClobsJoin();
             assertNotNull(stream);
-            List<ClobRecord> results = stream.toList();
+            List<LobRecord> results = stream.toList();
 
             assertEquals(1, results.size());
             assertEquals("1", results.get(0).id());
@@ -130,9 +130,9 @@ class OracleConnectorTest {
             when(resultSet.getString(1)).thenReturn("1");
 
             List<String> ids = List.of("1");
-            Stream<ClobRecord> stream = connector.fetchClobsIn(ids);
+            Stream<LobRecord> stream = connector.fetchClobsIn(ids);
             assertNotNull(stream);
-            List<ClobRecord> results = stream.toList();
+            List<LobRecord> results = stream.toList();
 
             assertEquals(1, results.size());
             assertEquals("1", results.get(0).id());
@@ -156,7 +156,7 @@ class OracleConnectorTest {
             when(resultSet.getString(1)).thenReturn("1");
 
             List<String> ids = List.of("1");
-            Stream<ClobRecord> stream = connector.fetchClobsIn(ids);
+            Stream<LobRecord> stream = connector.fetchClobsIn(ids);
             assertNotNull(stream);
             stream.toList();
 
@@ -171,7 +171,7 @@ class OracleConnectorTest {
                     .thenReturn(connection);
             connector.connect(config);
 
-            Stream<ClobRecord> stream = connector.fetchClobsIn(List.of());
+            Stream<LobRecord> stream = connector.fetchClobsIn(List.of());
             assertEquals(0, stream.count());
             verify(connection, never()).prepareStatement(anyString());
         }

@@ -2,10 +2,13 @@ package com.oracle.tool;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
 
@@ -17,16 +20,25 @@ public class CLOBProcessor {
   /**
    * Reads from database LOB and writes to disk.
    *
-   * @param clob       Oracle CLOB object.
+   * @param lob        Oracle CLOB or BLOB object.
    * @param targetPath Path to the target file.
    * @throws SQLException If a database access error occurs.
    * @throws IOException  If an I/O error occurs.
    */
-  public void streamToFile(Clob clob, Path targetPath) throws SQLException, IOException {
-    try (Reader reader = clob.getCharacterStream();
-        BufferedWriter writer = Files.newBufferedWriter(
-            targetPath, StandardCharsets.UTF_8)) {
-      reader.transferTo(writer);
+  public void streamToFile(Object lob, Path targetPath) throws SQLException, IOException {
+    if (lob instanceof Clob clob) {
+      try (Reader reader = clob.getCharacterStream();
+          BufferedWriter writer = Files.newBufferedWriter(
+              targetPath, StandardCharsets.UTF_8)) {
+        reader.transferTo(writer);
+      }
+    } else if (lob instanceof Blob blob) {
+      try (InputStream is = blob.getBinaryStream();
+          OutputStream os = Files.newOutputStream(targetPath)) {
+        is.transferTo(os);
+      }
+    } else if (lob != null) {
+      throw new IllegalArgumentException("Unsupported LOB type: " + lob.getClass().getName());
     }
   }
 
