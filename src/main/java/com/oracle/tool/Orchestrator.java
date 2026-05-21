@@ -7,7 +7,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.slf4j.Logger;
@@ -120,9 +123,24 @@ public class Orchestrator {
    */
   public void uploadMode(Path csvPath, Path inputDir, DBConfig dbConfig)
       throws IOException, SQLException {
-    List<String> ids = inputManager.loadIds(csvPath);
-    if (ids.isEmpty()) {
-      logger.info("No IDs found in CSV file.");
+    uploadMode(csvPath, inputDir, dbConfig, false);
+  }
+
+  /**
+   * Orchestrates UC-2: Upload CLOBs with optional regex matching.
+   *
+   * @param csvPath     Path to the CSV file containing IDs.
+   * @param inputDir    Directory containing files to upload.
+   * @param dbConfig    Database configuration.
+   * @param idAsRegex   Whether to treat IDs as regex patterns.
+   * @throws IOException  If an I/O error occurs.
+   * @throws SQLException If a database access error occurs.
+   */
+  public void uploadMode(Path csvPath, Path inputDir, DBConfig dbConfig, boolean idAsRegex)
+      throws IOException, SQLException {
+    List<String> patternsOrIds = inputManager.loadIds(csvPath);
+    if (patternsOrIds.isEmpty()) {
+      logger.info("No IDs or patterns found in CSV file.");
       return;
     }
 
@@ -131,25 +149,58 @@ public class Orchestrator {
       int columnType = dbConnector.getLobColumnType();
       boolean isBinary = (columnType == Types.BLOB);
 
-      for (String idVal : ids) {
-        Path filePath = inputDir.resolve(idVal + ".txt");
-        if (Files.exists(filePath)) {
-          if (isBinary) {
-            try (InputStream is = clobProcessor.openFileAsStream(filePath)) {
-              dbConnector.updateLob(idVal, is);
-            }
-          } else {
-            try (Reader reader = clobProcessor.openFile(filePath)) {
-              dbConnector.updateLob(idVal, reader);
+      if (idAsRegex) {
+        List<Pattern> compiledPatterns = new ArrayList<>();
+        for (String p : patternsOrIds) {
+          try {
+            compiledPatterns.add(Pattern.compile(p));
+          } catch (Exception e) {
+            logger.error("Invalid regex pattern '{}': {}", p, e.getMessage());
+          }
+        }
+
+        try (Stream<Path> paths = Files.list(inputDir)) {
+          Iterable<Path> filePaths = paths.filter(Files::isRegularFile)::iterator;
+          for (Path filePath : filePaths) {
+            String filename = filePath.getFileName().toString();
+            for (Pattern pattern : compiledPatterns) {
+              Matcher matcher = pattern.matcher(filename);
+              if (matcher.find()) {
+                String dbId = matcher.groupCount() > 0 ? matcher.group(1) : matcher.group(0);
+                logger.info("Matched file {} with pattern {} -> ID: {}",
+                    filename, pattern.pattern(), dbId);
+                updateSingleLob(dbId, filePath, isBinary);
+                break;
+              }
             }
           }
-        } else {
-          logger.warn("File not found for ID {}: {}", idVal, filePath);
+        }
+      } else {
+        for (String idVal : patternsOrIds) {
+          Path filePath = inputDir.resolve(idVal + ".txt");
+          if (Files.exists(filePath)) {
+            updateSingleLob(idVal, filePath, isBinary);
+          } else {
+            logger.warn("File not found for ID {}: {}", idVal, filePath);
+          }
         }
       }
       dbConnector.commit();
     } finally {
       dbConnector.close();
+    }
+  }
+
+  private void updateSingleLob(String idVal, Path filePath, boolean isBinary)
+      throws IOException, SQLException {
+    if (isBinary) {
+      try (InputStream is = clobProcessor.openFileAsStream(filePath)) {
+        dbConnector.updateLob(idVal, is);
+      }
+    } else {
+      try (Reader reader = clobProcessor.openFile(filePath)) {
+        dbConnector.updateLob(idVal, reader);
+      }
     }
   }
 }

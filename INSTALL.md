@@ -117,6 +117,18 @@ Uploads local file content into the CLOB fields of an Oracle table, matching IDs
 
 # Using source code
 python3 src/cli.py upload [OPTIONS]
+
+# Upload using regex patterns to match filenames
+./oracle-clob-tool upload \
+    --csv-path patterns.csv \
+    --input-dir ./input \
+    --user MYUSER \
+    --password MYPASS \
+    --dsn MYHOST:1521/SERVICE \
+    --table MY_TABLE \
+    --id-column ID \
+    --clob-column DATA \
+    --id-as-regex
 ```
 
 ### Global Options
@@ -130,5 +142,5 @@ python3 src/cli.py upload [OPTIONS]
 
 - **Connection Errors:** Ensure the DSN is correct and the database is reachable. The tool uses the `python-oracledb` thin driver, so it does not require Oracle Instant Client.
 - **ORA-00942: table or view does not exist:** Check that the table names (target table and GTT) are correct and that the user has the necessary permissions.
-- **Missing Files (Upload):** Ensure that the filenames in your input directory match the IDs in your CSV file (e.g., if ID is `123`, the file should be named `123`).
+- **Missing Files (Upload):** Ensure that the filenames in your input directory match the IDs in your CSV file (e.g., if ID is `123`, the file should be named `123`). When using `--id-as-regex`, the filenames must be matched by the patterns in your CSV.
 - **CSV Format:** The CSV should have a header. The tool attempts to detect the ID column automatically (e.g., 'ID').
