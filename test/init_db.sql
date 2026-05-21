@@ -19,6 +19,15 @@ INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('8', 'Initial content for ID 8');
 INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('9', 'Initial content for ID 9');
 INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('10', 'Initial content for ID 10');
 
+DROP TABLE BLOB_DATA;
+
+CREATE TABLE BLOB_DATA (
+    ID VARCHAR2(255) PRIMARY KEY,
+    CONTENT BLOB
+);
+
+INSERT INTO BLOB_DATA (ID, CONTENT) VALUES ('1', utl_raw.cast_to_raw('Initial blob content for ID 1'));
+
 COMMIT;
 
 EXIT;

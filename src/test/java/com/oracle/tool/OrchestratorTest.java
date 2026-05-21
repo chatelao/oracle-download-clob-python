@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Clob;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
@@ -105,13 +106,14 @@ class OrchestratorTest {
         when(inputManager.loadIds(any())).thenReturn(ids);
         Reader reader = mock(Reader.class);
         when(clobProcessor.openFile(any())).thenReturn(reader);
+        when(dbConnector.getLobColumnType()).thenReturn(Types.CLOB);
 
         Files.createFile(tempDir.resolve("1.txt"));
 
         orchestrator.uploadMode(Path.of("test.csv"), tempDir, dbConfig);
 
         verify(dbConnector).connect(dbConfig);
-        verify(dbConnector).updateClob(eq("1"), eq(reader));
+        verify(dbConnector).updateLob(eq("1"), eq(reader));
         verify(dbConnector).commit();
         verify(dbConnector).close();
     }

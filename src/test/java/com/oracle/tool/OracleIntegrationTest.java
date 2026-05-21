@@ -8,9 +8,12 @@ import org.junit.jupiter.api.Assumptions;
 import org.testcontainers.containers.OracleContainer;
 import org.testcontainers.utility.DockerImageName;
 
+import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.sql.Blob;
 import java.sql.Clob;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -154,7 +157,7 @@ class OracleIntegrationTest {
         String newContent = "Updated content from Java integration test";
         String targetId = "3";
         try (Reader reader = new StringReader(newContent)) {
-            connector.updateClob(targetId, reader);
+            connector.updateLob(targetId, reader);
             connector.commit();
         }
 
@@ -181,7 +184,7 @@ class OracleIntegrationTest {
         String largeContent = "A".repeat(70 * 1024);
         String targetId = "4";
         try (Reader reader = new StringReader(largeContent)) {
-            connector.updateClob(targetId, reader);
+            connector.updateLob(targetId, reader);
             connector.commit();
         }
 
@@ -205,7 +208,7 @@ class OracleIntegrationTest {
         // Use ID 5
         String targetId = "5";
         try (Reader reader = new StringReader("")) {
-            connector.updateClob(targetId, reader);
+            connector.updateLob(targetId, reader);
             connector.commit();
         }
 
@@ -228,7 +231,7 @@ class OracleIntegrationTest {
         String unicodeContent = "Hello 🌍, Special characters: ñ, á, é, í, ó, ú, ⚡";
         String targetId = "6";
         try (Reader reader = new StringReader(unicodeContent)) {
-            connector.updateClob(targetId, reader);
+            connector.updateLob(targetId, reader);
             connector.commit();
         }
 
@@ -264,6 +267,34 @@ class OracleIntegrationTest {
             assertEquals(3, list.size());
             List<String> resultIds = list.stream().map(LobRecord::id).toList();
             assertTrue(resultIds.containsAll(ids));
+        }
+    }
+
+    @Test
+    void testBlobDownload() throws SQLException, Exception {
+        // Use BLOB_DATA table
+        DBConfig blobConfig = new DBConfig(
+                staticUser,
+                staticPassword,
+                config.dsn(),
+                "BLOB_DATA",
+                "ID",
+                "CONTENT",
+                "GTT_IDS_BLOB"
+        );
+        connector.close();
+        connector.connect(blobConfig);
+
+        connector.createGtt(List.of("1"));
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            LobRecord record = results.findFirst().orElseThrow();
+            assertEquals("1", record.id());
+            assertTrue(record.lob() instanceof Blob);
+            try (InputStream is = ((Blob) record.lob()).getBinaryStream()) {
+                byte[] bytes = is.readAllBytes();
+                String content = new String(bytes, StandardCharsets.UTF_8);
+                assertEquals("Initial blob content for ID 1", content);
+            }
         }
     }
 }

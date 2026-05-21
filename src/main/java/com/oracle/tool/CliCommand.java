@@ -87,7 +87,8 @@ public class CliCommand implements Runnable {
     @Option(names = "--id-column", required = true, description = "Column name for IDs.")
     String idColumn;
 
-    @Option(names = "--clob-column", required = true, description = "Column name for CLOBs.")
+    @Option(names = {"--clob-column", "--lob-column"}, required = true,
+        description = "Column name for CLOBs or BLOBs.")
     String clobColumn;
 
     @Option(names = "--gtt-name", defaultValue = "GTT_IDS",
@@ -164,7 +165,8 @@ public class CliCommand implements Runnable {
     @Option(names = "--id-column", required = true, description = "Column name for IDs.")
     String idColumn;
 
-    @Option(names = "--clob-column", required = true, description = "Column name for CLOBs.")
+    @Option(names = {"--clob-column", "--lob-column"}, required = true,
+        description = "Column name for CLOBs or BLOBs.")
     String clobColumn;
 
     @Override
