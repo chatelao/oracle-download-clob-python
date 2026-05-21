@@ -113,7 +113,7 @@ public class CliCommand implements Runnable {
         Orchestrator orchestrator = createOrchestrator();
 
         logger.info("Starting download mode. CSV: {}, Output: {}", csvPath, outputDir);
-        orchestrator.downloadMode(csvPath, outputDir, dbConfig);
+        orchestrator.downloadMode(csvPath, outputDir, dbConfig, new ConsoleProgressReporter());
         logger.info("Download completed successfully.");
         return 0;
       } catch (Exception ex) {

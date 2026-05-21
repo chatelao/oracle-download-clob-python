@@ -63,8 +63,11 @@ class OrchestratorTest {
         Stream<LobRecord> clobStream = Stream.of(new LobRecord("1", clob1));
         when(dbConnector.fetchClobsIn(ids)).thenReturn(clobStream);
 
-        orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig);
+        ProgressReporter reporter = mock(ProgressReporter.class);
+        orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig, reporter);
 
+        verify(reporter).setTotal(2);
+        verify(reporter).update(1);
         verify(dbConnector).connect(dbConfig);
         verify(dbConnector, never()).createGtt(any());
         verify(dbConnector).fetchClobsIn(ids);
@@ -75,14 +78,17 @@ class OrchestratorTest {
 
     @Test
     void downloadMode_LargeDataset_UsesGttJoin() throws IOException, SQLException {
-        List<String> ids = Collections.nCopies(1000, "id");
+        List<String> ids = Collections.nCopies(1001, "id");
         when(inputManager.loadIds(any())).thenReturn(ids);
         Clob clob1 = mock(Clob.class);
         Stream<LobRecord> clobStream = Stream.of(new LobRecord("id", clob1));
         when(dbConnector.fetchClobsJoin()).thenReturn(clobStream);
 
-        orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig);
+        ProgressReporter reporter = mock(ProgressReporter.class);
+        orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig, reporter);
 
+        verify(reporter).setTotal(1001);
+        verify(reporter).update(1);
         verify(dbConnector).connect(dbConfig);
         verify(dbConnector).createGtt(ids);
         verify(dbConnector).fetchClobsJoin();

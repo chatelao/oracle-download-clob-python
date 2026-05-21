@@ -8,7 +8,7 @@ from src.oracle_connector import DBConfig, OracleConnector
 from src.input_manager import InputManager
 from src.clob_processor import CLOBProcessor
 from src.fs_manager import FSManager
-from src.orchestrator import Orchestrator
+from src.orchestrator import Orchestrator, ProgressReporter
 
 # Configure logging
 logging.basicConfig(
@@ -17,6 +17,30 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stderr)]
 )
 logger = logging.getLogger(__name__)
+
+class ClickProgressReporter(ProgressReporter):
+    """Progress reporter using click.progressbar."""
+    def __init__(self):
+        self.bar = None
+        self._started = False
+
+    def set_total(self, total: int):
+        self.bar = click.progressbar(length=total,
+                                    label='Downloading',
+                                    show_pos=True,
+                                    show_percent=True)
+
+    def update(self, n: int):
+        if self.bar:
+            if not self._started:
+                self.bar.__enter__()
+                self._started = True
+            self.bar.update(n)
+
+    def finish(self):
+        if self.bar and self._started:
+            self.bar.__exit__(None, None, None)
+            self._started = False
 
 def load_config(ctx, param, value):
     """Callback to load configuration from a file."""
@@ -97,7 +121,11 @@ def download(csv_path, output_dir, user, password, dsn, table, query, id_column,
         )
 
         logger.info(f"Starting download mode. CSV: {csv_path}, Output: {output_dir}")
-        orchestrator.download_mode(Path(csv_path), Path(output_dir), db_config)
+        reporter = ClickProgressReporter()
+        try:
+            orchestrator.download_mode(Path(csv_path), Path(output_dir), db_config, reporter=reporter)
+        finally:
+            reporter.finish()
         logger.info("Download completed successfully.")
     except Exception as e:
         logger.error(f"Download failed: {e}")

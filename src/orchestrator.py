@@ -4,8 +4,17 @@ from src.oracle_connector import OracleConnector, DBConfig
 from src.clob_processor import CLOBProcessor
 import logging
 from src.fs_manager import FSManager
+from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+class ProgressReporter:
+    """Base class/interface for progress reporting."""
+    def set_total(self, total: int):
+        pass
+
+    def update(self, n: int):
+        pass
 
 class Orchestrator:
     """High-level execution flow for Download and Upload modes."""
@@ -20,11 +29,15 @@ class Orchestrator:
         self.clob_processor = clob_processor
         self.fs_manager = fs_manager
 
-    def download_mode(self, csv_path: Path, output_dir: Path, db_config: DBConfig):
+    def download_mode(self, csv_path: Path, output_dir: Path, db_config: DBConfig,
+                      reporter: Optional[ProgressReporter] = None):
         """Orchestrates UC-1."""
         ids = self.input_manager.load_ids(csv_path)
         if not ids:
             return
+
+        if reporter:
+            reporter.set_total(len(ids))
 
         self.db_connector.connect(db_config)
         try:
@@ -41,6 +54,8 @@ class Orchestrator:
             for id_val, clob_lob in clob_iterator:
                 target_path = output_dir / f"{id_val}.txt"
                 self.clob_processor.stream_to_file(clob_lob, target_path)
+                if reporter:
+                    reporter.update(1)
         finally:
             self.db_connector.close()
 
