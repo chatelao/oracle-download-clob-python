@@ -173,6 +173,9 @@ public class CliCommand implements Runnable {
         description = "Column name for CLOBs or BLOBs.")
     String clobColumn;
 
+    @Option(names = "--id-as-regex", description = "Treat IDs as regex patterns to match filenames.")
+    private boolean idAsRegex;
+
     @Override
     public Integer call() throws Exception {
       if (parent != null && parent.debug) {
@@ -182,8 +185,9 @@ public class CliCommand implements Runnable {
         DBConfig dbConfig = new DBConfig(user, password, dsn, table, idColumn, clobColumn);
         Orchestrator orchestrator = createOrchestrator();
 
-        logger.info("Starting upload mode. CSV: {}, Input: {}", csvPath, inputDir);
-        orchestrator.uploadMode(csvPath, inputDir, dbConfig);
+        logger.info("Starting upload mode. CSV: {}, Input: {}, ID as Regex: {}",
+            csvPath, inputDir, idAsRegex);
+        orchestrator.uploadMode(csvPath, inputDir, dbConfig, idAsRegex);
         logger.info("Upload completed successfully.");
         return 0;
       } catch (Exception ex) {

@@ -53,6 +53,24 @@ def test_help():
             return False
 
     print("Download help parity: OK")
+
+    print("Testing 'upload --help' parity...")
+    python_cmd = ["python3", "src/cli.py", "upload", "--help"]
+    java_cmd = ["mvn", "-q", "compile", "exec:java", "-Dexec.mainClass=com.oracle.tool.CliCommand", "-Dexec.args=upload --help"]
+
+    p_rc, p_out, p_err = run_command(python_cmd)
+    j_rc, j_out, j_err = run_command(java_cmd)
+
+    keywords = ["csv-path", "input-dir", "dsn", "user", "password", "table", "id-column", "clob-column", "id-as-regex"]
+    for kw in keywords:
+        if kw.lower() not in p_out.lower():
+            print(f"Keyword '{kw}' missing from Python upload help output")
+            return False
+        if kw.lower() not in j_out.lower():
+            print(f"Keyword '{kw}' missing from Java upload help output")
+            return False
+
+    print("Upload help parity: OK")
     return True
 
 def test_invalid_args():

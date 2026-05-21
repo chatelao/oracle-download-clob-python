@@ -86,3 +86,26 @@ def test_upload_mode(orchestrator, mock_managers, db_config, tmp_path, caplog):
     mock_managers["db"].close.assert_called_once()
 
     assert "File not found for ID 2" in caplog.text
+
+def test_upload_mode_regex(orchestrator, mock_managers, db_config, tmp_path):
+    csv_path = tmp_path / "patterns.csv"
+    csv_path.write_text("ID\n([0-9]+)_data\nprefix_(.*)\\.txt")
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    (input_dir / "123_data.txt").write_text("content123")
+    (input_dir / "prefix_abc.txt").write_text("content_abc")
+    (input_dir / "no_match.txt").write_text("no_match")
+
+    mock_managers["input"].load_ids.return_value = ["([0-9]+)_data", "prefix_(.*)\\.txt"]
+    # open_file returns a context manager
+    mock_file = MagicMock()
+    mock_managers["processor"].open_file.return_value.__enter__.return_value = mock_file
+
+    orchestrator.upload_mode(csv_path, input_dir, db_config, id_as_regex=True)
+
+    # Check if update_clob was called with the correctly extracted IDs
+    # The order of files from iterdir() might vary, so we check calls
+    expected_ids = {"123", "abc"}
+    actual_ids = {call.args[0] for call in mock_managers["db"].update_clob.call_args_list}
+    assert actual_ids == expected_ids
+    assert mock_managers["db"].update_clob.call_count == 2

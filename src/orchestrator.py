@@ -66,21 +66,43 @@ class Orchestrator:
         finally:
             self.db_connector.close()
 
-    def upload_mode(self, csv_path: Path, input_dir: Path, db_config: DBConfig):
+    def upload_mode(self, csv_path: Path, input_dir: Path, db_config: DBConfig, id_as_regex: bool = False):
         """Orchestrates UC-2."""
-        ids = self.input_manager.load_ids(csv_path)
-        if not ids:
+        patterns_or_ids = self.input_manager.load_ids(csv_path)
+        if not patterns_or_ids:
             return
 
         self.db_connector.connect(db_config)
         try:
-            for id_val in ids:
-                file_path = input_dir / f"{id_val}.txt"
-                if file_path.exists():
-                    with self.clob_processor.open_file(file_path) as f:
-                        self.db_connector.update_clob(id_val, f)
-                else:
-                    logger.warning(f"File not found for ID {id_val}: {file_path}")
+            if id_as_regex:
+                import re
+                compiled_patterns = []
+                for p in patterns_or_ids:
+                    try:
+                        compiled_patterns.append(re.compile(p))
+                    except re.error as e:
+                        logger.error(f"Invalid regex pattern '{p}': {e}")
+
+                for file_path in input_dir.iterdir():
+                    if not file_path.is_file():
+                        continue
+                    filename = file_path.name
+                    for cp in compiled_patterns:
+                        match = cp.search(filename)
+                        if match:
+                            db_id = match.group(1) if match.groups() else match.group(0)
+                            logger.info(f"Matched file {filename} with pattern {cp.pattern} -> ID: {db_id}")
+                            with self.clob_processor.open_file(file_path) as f:
+                                self.db_connector.update_clob(db_id, f)
+                            break
+            else:
+                for id_val in patterns_or_ids:
+                    file_path = input_dir / f"{id_val}.txt"
+                    if file_path.exists():
+                        with self.clob_processor.open_file(file_path) as f:
+                            self.db_connector.update_clob(id_val, f)
+                    else:
+                        logger.warning(f"File not found for ID {id_val}: {file_path}")
             self.db_connector.commit()
         finally:
             self.db_connector.close()
