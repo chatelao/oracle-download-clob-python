@@ -59,7 +59,7 @@ class OrchestratorTest {
         List<String> ids = List.of("1", "2");
         when(inputManager.loadIds(any())).thenReturn(ids);
         Clob clob1 = mock(Clob.class);
-        Stream<ClobRecord> clobStream = Stream.of(new ClobRecord("1", clob1));
+        Stream<LobRecord> clobStream = Stream.of(new LobRecord("1", clob1));
         when(dbConnector.fetchClobsIn(ids)).thenReturn(clobStream);
 
         orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig);
@@ -77,7 +77,7 @@ class OrchestratorTest {
         List<String> ids = Collections.nCopies(1000, "id");
         when(inputManager.loadIds(any())).thenReturn(ids);
         Clob clob1 = mock(Clob.class);
-        Stream<ClobRecord> clobStream = Stream.of(new ClobRecord("id", clob1));
+        Stream<LobRecord> clobStream = Stream.of(new LobRecord("id", clob1));
         when(dbConnector.fetchClobsJoin()).thenReturn(clobStream);
 
         orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig);

@@ -53,7 +53,7 @@ public class Orchestrator {
     try {
       fsManager.ensureDirectory(outputDir);
 
-      Stream<ClobRecord> clobStream;
+      Stream<LobRecord> clobStream;
       if (ids.size() < 1000) {
         logger.info("Using IN clause strategy for {} IDs", ids.size());
         clobStream = dbConnector.fetchClobsIn(ids);
@@ -64,10 +64,10 @@ public class Orchestrator {
       }
 
       try (clobStream) {
-        Iterable<ClobRecord> iterable = clobStream::iterator;
-        for (ClobRecord record : iterable) {
+        Iterable<LobRecord> iterable = clobStream::iterator;
+        for (LobRecord record : iterable) {
           Path targetPath = outputDir.resolve(record.id() + ".txt");
-          clobProcessor.streamToFile(record.clob(), targetPath);
+          clobProcessor.streamToFile(record.lob(), targetPath);
         }
       } catch (RuntimeException ex) {
         if (ex.getCause() instanceof SQLException sqlException) {

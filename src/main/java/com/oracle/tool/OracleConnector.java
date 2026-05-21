@@ -96,12 +96,12 @@ public class OracleConnector implements AutoCloseable {
   }
 
   /**
-   * Executes the JOIN query and returns a Stream of ClobRecords.
+   * Executes the JOIN query and returns a Stream of LobRecords.
    *
-   * @return Stream of ClobRecord objects.
+   * @return Stream of LobRecord objects.
    * @throws SQLException If a database access error occurs.
    */
-  public Stream<ClobRecord> fetchClobsJoin() throws SQLException {
+  public Stream<LobRecord> fetchClobsJoin() throws SQLException {
     if (conn == null) {
       throw new SQLException("Database not connected");
     }
@@ -117,15 +117,15 @@ public class OracleConnector implements AutoCloseable {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
 
-    return StreamSupport.stream(new Spliterators.AbstractSpliterator<ClobRecord>(
+    return StreamSupport.stream(new Spliterators.AbstractSpliterator<LobRecord>(
         Long.MAX_VALUE, 0) {
       @Override
-      public boolean tryAdvance(java.util.function.Consumer<? super ClobRecord> action) {
+      public boolean tryAdvance(java.util.function.Consumer<? super LobRecord> action) {
         try {
           if (!rs.next()) {
             return false;
           }
-          action.accept(new ClobRecord(rs.getString(1), rs.getClob(2)));
+          action.accept(new LobRecord(rs.getString(1), rs.getObject(2)));
           return true;
         } catch (SQLException ex) {
           throw new RuntimeException(ex);
@@ -142,13 +142,13 @@ public class OracleConnector implements AutoCloseable {
   }
 
   /**
-   * Executes the query with an IN clause and returns a Stream of ClobRecords.
+   * Executes the query with an IN clause and returns a Stream of LobRecords.
    *
    * @param ids List of IDs to fetch.
-   * @return Stream of ClobRecord objects.
+   * @return Stream of LobRecord objects.
    * @throws SQLException If a database access error occurs.
    */
-  public Stream<ClobRecord> fetchClobsIn(List<String> ids) throws SQLException {
+  public Stream<LobRecord> fetchClobsIn(List<String> ids) throws SQLException {
     if (conn == null) {
       throw new SQLException("Database not connected");
     }
@@ -181,15 +181,15 @@ public class OracleConnector implements AutoCloseable {
 
     ResultSet rs = pstmt.executeQuery();
 
-    return StreamSupport.stream(new Spliterators.AbstractSpliterator<ClobRecord>(
+    return StreamSupport.stream(new Spliterators.AbstractSpliterator<LobRecord>(
         Long.MAX_VALUE, 0) {
       @Override
-      public boolean tryAdvance(java.util.function.Consumer<? super ClobRecord> action) {
+      public boolean tryAdvance(java.util.function.Consumer<? super LobRecord> action) {
         try {
           if (!rs.next()) {
             return false;
           }
-          action.accept(new ClobRecord(rs.getString(1), rs.getClob(2)));
+          action.accept(new LobRecord(rs.getString(1), rs.getObject(2)));
           return true;
         } catch (SQLException ex) {
           throw new RuntimeException(ex);
