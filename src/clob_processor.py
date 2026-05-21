@@ -9,8 +9,19 @@ class CLOBProcessor:
 
     def stream_to_file(self, clob_lob: Any, target_path: Path):
         """Reads from database LOB and writes to disk in chunks."""
-        with target_path.open('w', encoding='utf-8') as f:
-            offset = 1
+        # Detect if it's a BLOB by checking the first read result
+        first_chunk = clob_lob.read(1, self.chunk_size)
+        if not first_chunk:
+            # Empty LOB, create empty file
+            target_path.write_text("", encoding='utf-8')
+            return
+
+        mode = 'wb' if isinstance(first_chunk, bytes) else 'w'
+        encoding = None if mode == 'wb' else 'utf-8'
+
+        with target_path.open(mode, encoding=encoding) as f:
+            f.write(first_chunk)
+            offset = 1 + len(first_chunk)
             while True:
                 data = clob_lob.read(offset, self.chunk_size)
                 if not data:
