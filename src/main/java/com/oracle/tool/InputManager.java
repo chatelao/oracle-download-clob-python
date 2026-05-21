@@ -38,22 +38,19 @@ public class InputManager {
 
       boolean firstRecord = true;
       for (CSVRecord csvRecord : csvParser) {
+        if (firstRecord) {
+          firstRecord = false;
+          continue;
+        }
         if (csvRecord.size() > 0) {
           String val = csvRecord.get(0);
           if (val != null) {
             val = val.trim();
             if (!val.isEmpty()) {
-              // Simple header detection: if first row is "ID" (case-insensitive),
-              // skip it
-              if (firstRecord && val.equalsIgnoreCase("ID")) {
-                firstRecord = false;
-                continue;
-              }
               ids.add(val);
             }
           }
         }
-        firstRecord = false;
       }
     }
 
