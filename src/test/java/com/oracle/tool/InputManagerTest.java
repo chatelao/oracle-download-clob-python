@@ -25,13 +25,14 @@ class InputManagerTest {
     }
 
     @Test
-    void testLoadIdsNoHeader(@TempDir Path tempDir) throws IOException {
+    void testLoadIdsNoHeaderSkipsFirstRow(@TempDir Path tempDir) throws IOException {
         Path csvFile = tempDir.resolve("ids_no_header.csv");
+        // "10" will be skipped as it's the first line
         Files.writeString(csvFile, "10\n20\n30\n");
 
         List<String> ids = inputManager.loadIds(csvFile);
-        assertEquals(3, ids.size());
-        assertEquals(List.of("10", "20", "30"), ids);
+        assertEquals(2, ids.size());
+        assertEquals(List.of("20", "30"), ids);
     }
 
     @Test
