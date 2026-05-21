@@ -71,8 +71,9 @@ def cli(debug):
 @click.option('--query', required=False, help='User written SELECT statement.')
 @click.option('--id-column', required=True, help='Column name for IDs.')
 @click.option('--clob-column', required=True, help='Column name for CLOBs.')
+@click.option('--filename-column', required=False, help='Column name for filenames.')
 @click.option('--gtt-name', default="GTT_IDS", help='Name of the Global Temporary Table.')
-def download(csv_path, output_dir, user, password, dsn, table, query, id_column, clob_column, gtt_name):
+def download(csv_path, output_dir, user, password, dsn, table, query, id_column, clob_column, filename_column, gtt_name):
     """Download CLOBs to local files."""
     if not table and not query:
         raise click.UsageError("Either --table or --query must be provided.")
@@ -86,7 +87,8 @@ def download(csv_path, output_dir, user, password, dsn, table, query, id_column,
             id_column=id_column,
             clob_column=clob_column,
             gtt_name=gtt_name,
-            query=query
+            query=query,
+            filename_column=filename_column
         )
 
         orchestrator = Orchestrator(

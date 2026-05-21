@@ -50,13 +50,19 @@ def test_download_mode_small_dataset(orchestrator, mock_managers, db_config, tmp
 
     ids = ["1", "2"]
     mock_managers["input"].load_ids.return_value = ids
-    mock_managers["db"].fetch_clobs_in.return_value = []
+    mock_managers["db"].fetch_clobs_in.return_value = [("1", MagicMock(), "custom.txt"), ("2", MagicMock(), None)]
 
     orchestrator.download_mode(csv_path, output_dir, db_config)
 
     mock_managers["db"].create_gtt.assert_not_called()
     mock_managers["db"].fetch_clobs_join.assert_not_called()
     mock_managers["db"].fetch_clobs_in.assert_called_once_with(ids)
+
+    assert mock_managers["processor"].stream_to_file.call_count == 2
+    args1 = mock_managers["processor"].stream_to_file.call_args_list[0][0]
+    assert args1[1] == output_dir / "custom.txt"
+    args2 = mock_managers["processor"].stream_to_file.call_args_list[1][0]
+    assert args2[1] == output_dir / "2.txt"
 
 def test_upload_mode(orchestrator, mock_managers, db_config, tmp_path, caplog):
     csv_path = tmp_path / "ids.csv"

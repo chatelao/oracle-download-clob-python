@@ -110,9 +110,11 @@ public class OracleConnector implements AutoCloseable {
 
     String source = (config.query() != null && !config.query().isEmpty())
         ? "(" + config.query() + ")" : config.targetTable();
+    String filenameCol = (config.filenameColumn() != null && !config.filenameColumn().isEmpty())
+        ? ", t." + config.filenameColumn() : "";
     String sql = String.format(
-        "SELECT t.%s, t.%s FROM %s t JOIN %s g ON t.%s = g.%s",
-        config.idColumn(), config.clobColumn(), source,
+        "SELECT t.%s, t.%s%s FROM %s t JOIN %s g ON t.%s = g.%s",
+        config.idColumn(), config.clobColumn(), filenameCol, source,
         config.gttName(), config.idColumn(), config.idColumn()
     );
 
@@ -136,7 +138,9 @@ public class OracleConnector implements AutoCloseable {
           } else {
             lob = rs.getObject(2);
           }
-          action.accept(new LobRecord(rs.getString(1), lob));
+          String filename = (config.filenameColumn() != null && !config.filenameColumn().isEmpty())
+              ? rs.getString(3) : null;
+          action.accept(new LobRecord(rs.getString(1), lob, filename));
           return true;
         } catch (SQLException ex) {
           throw new RuntimeException(ex);
@@ -170,9 +174,12 @@ public class OracleConnector implements AutoCloseable {
 
     String source = (config.query() != null && !config.query().isEmpty())
         ? "(" + config.query() + ")" : config.targetTable();
+    String filenameCol = (config.filenameColumn() != null && !config.filenameColumn().isEmpty())
+        ? ", " + config.filenameColumn() : "";
     StringBuilder sqlBuilder = new StringBuilder();
     sqlBuilder.append("SELECT ").append(config.idColumn())
         .append(", ").append(config.clobColumn())
+        .append(filenameCol)
         .append(" FROM ").append(source)
         .append(" WHERE ").append(config.idColumn())
         .append(" IN (");
@@ -209,7 +216,9 @@ public class OracleConnector implements AutoCloseable {
           } else {
             lob = rs.getObject(2);
           }
-          action.accept(new LobRecord(rs.getString(1), lob));
+          String filename = (config.filenameColumn() != null && !config.filenameColumn().isEmpty())
+              ? rs.getString(3) : null;
+          action.accept(new LobRecord(rs.getString(1), lob, filename));
           return true;
         } catch (SQLException ex) {
           throw new RuntimeException(ex);

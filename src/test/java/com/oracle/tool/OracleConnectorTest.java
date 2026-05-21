@@ -120,6 +120,7 @@ class OracleConnectorTest {
 
             assertEquals(1, results.size());
             assertEquals("1", results.get(0).id());
+            assertNull(results.get(0).filename());
         }
     }
 
@@ -144,6 +145,7 @@ class OracleConnectorTest {
 
             assertEquals(1, results.size());
             assertEquals("1", results.get(0).id());
+            assertNull(results.get(0).filename());
 
             verify(connection).prepareStatement(contains("IN (?)"));
             verify(preparedStatement).setString(1, "1");
@@ -171,6 +173,35 @@ class OracleConnectorTest {
             stream.toList();
 
             verify(connection).prepareStatement(contains("FROM (SELECT * FROM VIEW)"));
+        }
+    }
+
+    @Test
+    void fetchClobsIn_WithFilename() throws SQLException {
+        config = new DBConfig("user", "pass", "dsn", "table", "id", "clob", "GTT_IDS", null, "filename_col");
+        try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+                    .thenReturn(connection);
+            connector.connect(config);
+
+            when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
+            when(preparedStatement.executeQuery()).thenReturn(resultSet);
+            when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+            when(resultSetMetaData.getColumnType(2)).thenReturn(Types.CLOB);
+            when(resultSet.next()).thenReturn(true, false);
+            when(resultSet.getString(1)).thenReturn("1");
+            when(resultSet.getString(3)).thenReturn("custom.txt");
+
+            List<String> ids = List.of("1");
+            Stream<LobRecord> stream = connector.fetchClobsIn(ids);
+            assertNotNull(stream);
+            List<LobRecord> results = stream.toList();
+
+            assertEquals(1, results.size());
+            assertEquals("1", results.get(0).id());
+            assertEquals("custom.txt", results.get(0).filename());
+
+            verify(connection).prepareStatement(contains("filename_col"));
         }
     }
 

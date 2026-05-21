@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.endsWith;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,7 +61,11 @@ class OrchestratorTest {
         List<String> ids = List.of("1", "2");
         when(inputManager.loadIds(any())).thenReturn(ids);
         Clob clob1 = mock(Clob.class);
-        Stream<LobRecord> clobStream = Stream.of(new LobRecord("1", clob1));
+        Clob clob2 = mock(Clob.class);
+        Stream<LobRecord> clobStream = Stream.of(
+            new LobRecord("1", clob1, "custom1.txt"),
+            new LobRecord("2", clob2, null)
+        );
         when(dbConnector.fetchClobsIn(ids)).thenReturn(clobStream);
 
         orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig);
@@ -69,7 +74,8 @@ class OrchestratorTest {
         verify(dbConnector, never()).createGtt(any());
         verify(dbConnector).fetchClobsIn(ids);
         verify(dbConnector, never()).fetchClobsJoin();
-        verify(clobProcessor).streamToFile(eq(clob1), any());
+        verify(clobProcessor).streamToFile(eq(clob1), argThat(path -> path.toString().endsWith("custom1.txt")));
+        verify(clobProcessor).streamToFile(eq(clob2), argThat(path -> path.toString().endsWith("2.txt")));
         verify(dbConnector).close();
     }
 
@@ -78,7 +84,7 @@ class OrchestratorTest {
         List<String> ids = Collections.nCopies(1000, "id");
         when(inputManager.loadIds(any())).thenReturn(ids);
         Clob clob1 = mock(Clob.class);
-        Stream<LobRecord> clobStream = Stream.of(new LobRecord("id", clob1));
+        Stream<LobRecord> clobStream = Stream.of(new LobRecord("id", clob1, null));
         when(dbConnector.fetchClobsJoin()).thenReturn(clobStream);
 
         orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig);

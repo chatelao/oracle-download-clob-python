@@ -43,7 +43,7 @@ def test_help():
     p_rc, p_out, p_err = run_command(python_cmd)
     j_rc, j_out, j_err = run_command(java_cmd)
 
-    keywords = ["csv-path", "output-dir", "dsn", "user", "password", "table", "id-column", "clob-column"]
+    keywords = ["csv-path", "output-dir", "dsn", "user", "password", "table", "id-column", "clob-column", "filename-column"]
     for kw in keywords:
         if kw.lower() not in p_out.lower():
             print(f"Keyword '{kw}' missing from Python download help output")

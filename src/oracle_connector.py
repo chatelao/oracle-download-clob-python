@@ -12,6 +12,7 @@ class DBConfig:
     clob_column: str
     gtt_name: str = "GTT_IDS"
     query: Optional[str] = None
+    filename_column: Optional[str] = None
 
 class OracleConnector:
     """Manages connection lifecycle and executes SQL."""
@@ -63,14 +64,15 @@ class OracleConnector:
             data = [(id_val,) for id_val in ids]
             cursor.executemany(f"INSERT INTO {self.config.gtt_name} ({self.config.id_column}) VALUES (:1)", data)
 
-    def fetch_clobs_join(self) -> Iterator[Tuple[str, Any]]:
-        """Executes the JOIN query and yields CLOB objects (using Any for LOB type for now)."""
+    def fetch_clobs_join(self) -> Iterator[Tuple[str, Any, Optional[str]]]:
+        """Executes the JOIN query and yields (ID, LOB, Filename) tuples."""
         if not self.conn or not self.config:
             raise RuntimeError("Database not connected")
 
         source = f"({self.config.query})" if self.config.query else self.config.target_table
+        filename_col = f", t.{self.config.filename_column}" if self.config.filename_column else ""
         sql = f"""
-            SELECT t.{self.config.id_column}, t.{self.config.clob_column}
+            SELECT t.{self.config.id_column}, t.{self.config.clob_column}{filename_col}
             FROM {source} t
             JOIN {self.config.gtt_name} g ON t.{self.config.id_column} = g.{self.config.id_column}
         """
@@ -82,10 +84,13 @@ class OracleConnector:
                 if not rows:
                     break
                 for row in rows:
-                    yield row
+                    if self.config.filename_column:
+                        yield row
+                    else:
+                        yield (row[0], row[1], None)
 
-    def fetch_clobs_in(self, ids: List[str]) -> Iterator[Tuple[str, Any]]:
-        """Executes query with IN clause and yields CLOB objects."""
+    def fetch_clobs_in(self, ids: List[str]) -> Iterator[Tuple[str, Any, Optional[str]]]:
+        """Executes query with IN clause and yields (ID, LOB, Filename) tuples."""
         if not self.conn or not self.config:
             raise RuntimeError("Database not connected")
 
@@ -94,8 +99,9 @@ class OracleConnector:
 
         source = f"({self.config.query})" if self.config.query else self.config.target_table
         binds = [f":{i+1}" for i in range(len(ids))]
+        filename_col = f", {self.config.filename_column}" if self.config.filename_column else ""
         sql = f"""
-            SELECT {self.config.id_column}, {self.config.clob_column}
+            SELECT {self.config.id_column}, {self.config.clob_column}{filename_col}
             FROM {source}
             WHERE {self.config.id_column} IN ({', '.join(binds)})
         """
@@ -107,7 +113,10 @@ class OracleConnector:
                 if not rows:
                     break
                 for row in rows:
-                    yield row
+                    if self.config.filename_column:
+                        yield row
+                    else:
+                        yield (row[0], row[1], None)
 
     def update_clob(self, id: str, content: Union[str, TextIO]):
         """Updates a specific record with new CLOB data.

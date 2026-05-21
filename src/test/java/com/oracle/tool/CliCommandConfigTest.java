@@ -43,6 +43,29 @@ public class CliCommandConfigTest {
     }
 
     @Test
+    public void testDownloadWithFilenameColumn() throws Exception {
+        Path csvPath = tempDir.resolve("ids.csv");
+        Files.writeString(csvPath, "ID\n1");
+        Path outputDir = tempDir.resolve("output");
+
+        CliCommand.Download download = new CliCommand.Download();
+        CommandLine cmd = new CommandLine(download);
+        cmd.execute(
+                "--csv-path", csvPath.toString(),
+                "--output-dir", outputDir.toString(),
+                "--user", "u",
+                "--password", "p",
+                "--dsn", "d",
+                "--table", "t",
+                "--id-column", "i",
+                "--clob-column", "c",
+                "--filename-column", "f"
+        );
+
+        assertEquals("f", download.filenameColumn);
+    }
+
+    @Test
     public void testDownloadWithConfigIni() throws Exception {
         Path csvPath = tempDir.resolve("ids.csv");
         Files.writeString(csvPath, "ID\n1");
