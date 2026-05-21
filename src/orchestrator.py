@@ -38,8 +38,15 @@ class Orchestrator:
                 self.db_connector.create_gtt(ids)
                 clob_iterator = self.db_connector.fetch_clobs_join()
 
-            for id_val, clob_lob in clob_iterator:
-                target_path = output_dir / f"{id_val}.txt"
+            for row in clob_iterator:
+                id_val, clob_lob = row[0], row[1]
+                filename = row[2] if len(row) > 2 else None
+
+                if filename:
+                    target_path = output_dir / filename
+                else:
+                    target_path = output_dir / f"{id_val}.txt"
+
                 self.clob_processor.stream_to_file(clob_lob, target_path)
         finally:
             self.db_connector.close()
