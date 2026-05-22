@@ -35,23 +35,36 @@ class OracleIntegrationTest {
     @BeforeAll
     static void initDb() throws Exception {
         // First try to use the existing database if it's running (e.g. in CI)
-        String ciJdbcUrl = "jdbc:oracle:thin:@127.0.0.1:1521/FREEPDB1";
-        try (Connection conn = DriverManager.getConnection(ciJdbcUrl, "system", "password")) {
-            System.out.println("Using existing database at " + ciJdbcUrl);
-            configStaticDb(ciJdbcUrl, "system", "password");
-            initializeSchema(conn);
-            return;
-        } catch (SQLException e) {
-            System.out.println("Existing database not found, starting Testcontainers: " + e.getMessage());
+        // Note: CI might use different service name or SID.
+        String[] urls = {
+            "jdbc:oracle:thin:@127.0.0.1:1521/FREEPDB1",
+            "jdbc:oracle:thin:@localhost:1521/FREEPDB1",
+            "jdbc:oracle:thin:@127.0.0.1:1521/xe",
+            "jdbc:oracle:thin:@127.0.0.1:1521/xepdb1"
+        };
+
+        for (String url : urls) {
+            try (Connection conn = DriverManager.getConnection(url, "system", "password")) {
+                System.out.println("Using existing database at " + url);
+                configStaticDb(url, "system", "password");
+                initializeSchema(conn);
+                return;
+            } catch (SQLException e) {
+                System.out.println("Failed to connect to " + url + ": " + e.getMessage());
+            }
         }
 
+        System.out.println("Existing database not found or unreachable, starting Testcontainers...");
         try {
+            // Using 23ai Free image which is the new standard
             oracle = new OracleContainer(
                     DockerImageName.parse("container-registry.oracle.com/database/free:latest")
                             .asCompatibleSubstituteFor("gvenzl/oracle-xe"))
                     .withPassword("password");
             oracle.start();
+            System.out.println("Testcontainers Oracle started: " + oracle.getJdbcUrl());
         } catch (Exception e) {
+            System.err.println("Docker is not available or failed to start: " + e.getMessage());
             Assumptions.abort("Docker is not available or failed to start: " + e.getMessage());
         }
 
