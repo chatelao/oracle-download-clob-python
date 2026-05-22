@@ -70,10 +70,6 @@ public class Orchestrator {
       return;
     }
 
-    if (reporter != null) {
-      reporter.setTotal(ids.size());
-    }
-
     dbConnector.connect(dbConfig);
     try {
       fsManager.ensureDirectory(outputDir);
@@ -81,9 +77,15 @@ public class Orchestrator {
       Stream<LobRecord> clobStream;
       if (ids.size() < 1000) {
         logger.info("Using IN clause strategy for {} IDs", ids.size());
+        if (reporter != null) {
+          reporter.setTotal(ids.size());
+        }
         clobStream = dbConnector.fetchClobsIn(ids);
       } else {
         logger.info("Using GTT Join strategy for {} IDs", ids.size());
+        if (reporter != null) {
+          reporter.setTotal(ids.size());
+        }
         dbConnector.createGtt(ids);
         clobStream = dbConnector.fetchClobsJoin();
       }
@@ -108,6 +110,9 @@ public class Orchestrator {
         throw ex;
       }
     } finally {
+      if (reporter != null) {
+        reporter.finish();
+      }
       dbConnector.close();
     }
   }

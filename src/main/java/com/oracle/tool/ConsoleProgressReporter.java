@@ -9,6 +9,7 @@ public class ConsoleProgressReporter implements ProgressReporter {
   private final PrintWriter out;
   private int total = 0;
   private int current = 0;
+  private boolean finished = false;
   private static final int BAR_WIDTH = 50;
 
   public ConsoleProgressReporter() {
@@ -19,6 +20,7 @@ public class ConsoleProgressReporter implements ProgressReporter {
   public void setTotal(int total) {
     this.total = total;
     this.current = 0;
+    this.finished = false;
     render();
   }
 
@@ -27,7 +29,17 @@ public class ConsoleProgressReporter implements ProgressReporter {
     this.current += n;
     render();
     if (this.current >= this.total) {
-      out.println();
+      finish();
+    }
+  }
+
+  @Override
+  public void finish() {
+    if (!finished) {
+      if (total > 0) {
+        out.println();
+      }
+      finished = true;
     }
   }
 

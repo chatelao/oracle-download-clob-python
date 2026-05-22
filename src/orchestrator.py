@@ -16,6 +16,9 @@ class ProgressReporter:
     def update(self, n: int):
         pass
 
+    def finish(self):
+        pass
+
 class Orchestrator:
     """High-level execution flow for Download and Upload modes."""
 
@@ -36,18 +39,19 @@ class Orchestrator:
         if not ids:
             return
 
-        if reporter:
-            reporter.set_total(len(ids))
-
         self.db_connector.connect(db_config)
         try:
             self.fs_manager.ensure_directory(output_dir)
 
             if len(ids) < 1000:
                 logger.info(f"Using IN clause strategy for {len(ids)} IDs")
+                if reporter:
+                    reporter.set_total(len(ids))
                 clob_iterator = self.db_connector.fetch_clobs_in(ids)
             else:
                 logger.info(f"Using GTT Join strategy for {len(ids)} IDs")
+                if reporter:
+                    reporter.set_total(len(ids))
                 self.db_connector.create_gtt(ids)
                 clob_iterator = self.db_connector.fetch_clobs_join()
 
@@ -64,6 +68,8 @@ class Orchestrator:
                 if reporter:
                     reporter.update(1)
         finally:
+            if reporter:
+                reporter.finish()
             self.db_connector.close()
 
     def upload_mode(self, csv_path: Path, input_dir: Path, db_config: DBConfig, id_as_regex: bool = False):

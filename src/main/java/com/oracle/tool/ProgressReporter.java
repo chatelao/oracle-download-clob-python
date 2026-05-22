@@ -7,4 +7,6 @@ public interface ProgressReporter {
   void setTotal(int total);
 
   void update(int n);
+
+  void finish();
 }
