@@ -81,6 +81,7 @@ class Orchestrator:
         import oracledb
         self.db_connector.connect(db_config)
         try:
+            upload_count = 0
             col_type = self.db_connector.get_lob_column_type()
             is_binary = (col_type == oracledb.DB_TYPE_BLOB)
 
@@ -103,6 +104,7 @@ class Orchestrator:
                             db_id = match.group(1) if match.groups() else match.group(0)
                             logger.info(f"Matched file {filename} with pattern {cp.pattern} -> ID: {db_id}")
                             self._update_record(db_id, file_path, is_binary)
+                            upload_count += 1
                             break
             else:
                 for id_val in patterns_or_ids:
@@ -118,10 +120,13 @@ class Orchestrator:
                             file_path = matches[0]
 
                     if file_path.exists():
+                        logger.info(f"Uploading file {file_path.name} for ID {id_val}")
                         self._update_record(id_val, file_path, is_binary)
+                        upload_count += 1
                     else:
                         logger.warning(f"File not found for ID {id_val} in {input_dir}")
             self.db_connector.commit()
+            logger.info(f"Total files uploaded: {upload_count}")
         finally:
             self.db_connector.close()
 

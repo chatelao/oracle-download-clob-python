@@ -89,8 +89,12 @@ def test_upload_mode(orchestrator, mock_managers, db_config, tmp_path, caplog):
     mock_managers["db"].close.assert_called_once()
 
     assert "File not found for ID 2" in caplog.text
+    with caplog.at_level("INFO"):
+        orchestrator.upload_mode(csv_path, input_dir, db_config)
+        assert "Uploading file 1.txt for ID 1" in caplog.text
+        assert "Total files uploaded: 1" in caplog.text
 
-def test_upload_mode_regex(orchestrator, mock_managers, db_config, tmp_path):
+def test_upload_mode_regex(orchestrator, mock_managers, db_config, tmp_path, caplog):
     csv_path = tmp_path / "patterns.csv"
     csv_path.write_text("ID\n([0-9]+)_data\nprefix_(.*)\\.txt")
     input_dir = tmp_path / "input"
@@ -105,11 +109,13 @@ def test_upload_mode_regex(orchestrator, mock_managers, db_config, tmp_path):
     mock_managers["processor"].open_file.return_value.__enter__.return_value = mock_file
     mock_managers["db"].get_lob_column_type.return_value = MagicMock() # not binary
 
-    orchestrator.upload_mode(csv_path, input_dir, db_config, id_as_regex=True)
+    with caplog.at_level("INFO"):
+        orchestrator.upload_mode(csv_path, input_dir, db_config, id_as_regex=True)
 
-    # Check if update_lob was called with the correctly extracted IDs
-    # The order of files from iterdir() might vary, so we check calls
-    expected_ids = {"123", "abc"}
-    actual_ids = {call.args[0] for call in mock_managers["db"].update_lob.call_args_list}
-    assert actual_ids == expected_ids
-    assert mock_managers["db"].update_lob.call_count == 2
+        # Check if update_lob was called with the correctly extracted IDs
+        # The order of files from iterdir() might vary, so we check calls
+        expected_ids = {"123", "abc"}
+        actual_ids = {call.args[0] for call in mock_managers["db"].update_lob.call_args_list}
+        assert actual_ids == expected_ids
+        assert mock_managers["db"].update_lob.call_count == 2
+        assert "Total files uploaded: 2" in caplog.text

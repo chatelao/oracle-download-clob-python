@@ -56,11 +56,13 @@ class OracleIntegrationTest {
 
         System.out.println("Existing database not found or unreachable, starting Testcontainers...");
         try {
-            // Using 23ai Free image which is the new standard
+            // Using 23ai Free image which is the new standard.
+            // We explicitly set the database name to FREEPDB1 to match the image default.
             oracle = new OracleContainer(
                     DockerImageName.parse("container-registry.oracle.com/database/free:latest")
                             .asCompatibleSubstituteFor("gvenzl/oracle-xe"))
-                    .withPassword("password");
+                    .withPassword("password")
+                    .withDatabaseName("FREEPDB1");
             oracle.start();
             System.out.println("Testcontainers Oracle started: " + oracle.getJdbcUrl());
         } catch (Exception e) {
