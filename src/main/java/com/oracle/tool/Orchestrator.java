@@ -153,6 +153,7 @@ public class Orchestrator {
     try {
       int columnType = dbConnector.getLobColumnType();
       boolean isBinary = (columnType == Types.BLOB);
+      int uploadCount = 0;
 
       if (idAsRegex) {
         List<Pattern> compiledPatterns = new ArrayList<>();
@@ -175,6 +176,7 @@ public class Orchestrator {
                 logger.info("Matched file {} with pattern {} -> ID: {}",
                     filename, pattern.pattern(), dbId);
                 updateSingleLob(dbId, filePath, isBinary);
+                uploadCount++;
                 break;
               }
             }
@@ -184,13 +186,16 @@ public class Orchestrator {
         for (String idVal : patternsOrIds) {
           Path filePath = inputDir.resolve(idVal + ".txt");
           if (Files.exists(filePath)) {
+            logger.info("Uploading file {} for ID {}", filePath.getFileName(), idVal);
             updateSingleLob(idVal, filePath, isBinary);
+            uploadCount++;
           } else {
             logger.warn("File not found for ID {}: {}", idVal, filePath);
           }
         }
       }
       dbConnector.commit();
+      logger.info("Total files uploaded: {}", uploadCount);
     } finally {
       dbConnector.close();
     }

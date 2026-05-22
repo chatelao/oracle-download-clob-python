@@ -80,6 +80,7 @@ class Orchestrator:
 
         self.db_connector.connect(db_config)
         try:
+            upload_count = 0
             if id_as_regex:
                 import re
                 compiled_patterns = []
@@ -100,15 +101,19 @@ class Orchestrator:
                             logger.info(f"Matched file {filename} with pattern {cp.pattern} -> ID: {db_id}")
                             with self.clob_processor.open_file(file_path) as f:
                                 self.db_connector.update_clob(db_id, f)
+                            upload_count += 1
                             break
             else:
                 for id_val in patterns_or_ids:
                     file_path = input_dir / f"{id_val}.txt"
                     if file_path.exists():
+                        logger.info(f"Uploading file {file_path.name} for ID {id_val}")
                         with self.clob_processor.open_file(file_path) as f:
                             self.db_connector.update_clob(id_val, f)
+                        upload_count += 1
                     else:
                         logger.warning(f"File not found for ID {id_val}: {file_path}")
             self.db_connector.commit()
+            logger.info(f"Total files uploaded: {upload_count}")
         finally:
             self.db_connector.close()
