@@ -206,6 +206,24 @@ class OracleConnectorTest {
     }
 
     @Test
+    void updateLob_BlobSuccess() throws SQLException {
+        try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+                    .thenReturn(connection);
+            connector.connect(config);
+
+            when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
+
+            java.io.InputStream is = new java.io.ByteArrayInputStream("content".getBytes());
+            connector.updateLob("1", is);
+
+            verify(preparedStatement).setBinaryStream(eq(1), eq(is));
+            verify(preparedStatement).setString(eq(2), eq("1"));
+            verify(preparedStatement).executeUpdate();
+        }
+    }
+
+    @Test
     void close_ClosesConnection() throws SQLException {
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
             driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))

@@ -36,3 +36,7 @@ class CLOBProcessor:
     def open_file(self, source_path: Path):
         """Opens a file for reading, providing a handle for streaming."""
         return source_path.open('r', encoding='utf-8')
+
+    def open_file_binary(self, source_path: Path):
+        """Opens a file for binary reading."""
+        return source_path.open('rb')

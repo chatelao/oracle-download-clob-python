@@ -183,10 +183,23 @@ public class Orchestrator {
       } else {
         for (String idVal : patternsOrIds) {
           Path filePath = inputDir.resolve(idVal + ".txt");
+          if (!Files.exists(filePath)) {
+            filePath = inputDir.resolve(idVal);
+          }
+
+          if (!Files.exists(filePath)) {
+            try (Stream<Path> matches = Files.list(inputDir)) {
+              filePath = matches
+                  .filter(p -> p.getFileName().toString().startsWith(idVal + "."))
+                  .findFirst()
+                  .orElse(filePath);
+            }
+          }
+
           if (Files.exists(filePath)) {
             updateSingleLob(idVal, filePath, isBinary);
           } else {
-            logger.warn("File not found for ID {}: {}", idVal, filePath);
+            logger.warn("File not found for ID {} in {}", idVal, inputDir);
           }
         }
       }

@@ -297,4 +297,81 @@ class OracleIntegrationTest {
             }
         }
     }
+
+    @Test
+    void testBlobUpload() throws SQLException, Exception {
+        // Use BLOB_DATA table
+        DBConfig blobConfig = new DBConfig(
+                staticUser,
+                staticPassword,
+                config.dsn(),
+                "BLOB_DATA",
+                "ID",
+                "CONTENT",
+                "GTT_IDS_BLOB_UP"
+        );
+        connector.close();
+        connector.connect(blobConfig);
+
+        String targetId = "1";
+        byte[] newContent = "Updated blob content from Java".getBytes(StandardCharsets.UTF_8);
+        try (InputStream is = new java.io.ByteArrayInputStream(newContent)) {
+            connector.updateLob(targetId, is);
+            connector.commit();
+        }
+
+        // Verify
+        connector.createGtt(List.of(targetId));
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            LobRecord record = results.findFirst().orElseThrow();
+            try (InputStream is = ((Blob) record.lob()).getBinaryStream()) {
+                byte[] bytes = is.readAllBytes();
+                assertArrayEquals(newContent, bytes);
+            }
+        }
+    }
+
+    @Test
+    void testXmlTypeUpload() throws SQLException, Exception {
+        // Use XMLTYPE_DATA table
+        DBConfig xmlConfig = new DBConfig(
+                staticUser,
+                staticPassword,
+                config.dsn(),
+                "XMLTYPE_DATA",
+                "ID",
+                "CONTENT",
+                "GTT_IDS_XML_UP"
+        );
+        connector.close();
+        connector.connect(xmlConfig);
+
+        String targetId = "1";
+        String newXml = "<root><item>Updated XML from Java</item></root>";
+        try (Reader reader = new StringReader(newXml)) {
+            connector.updateLob(targetId, reader);
+            connector.commit();
+        }
+
+        // Verify
+        connector.createGtt(List.of(targetId));
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            LobRecord record = results.findFirst().orElseThrow();
+            // XMLType might come back as Clob or String depending on driver/version
+            String content;
+            if (record.lob() instanceof Clob clob) {
+                try (Reader r = clob.getCharacterStream()) {
+                    StringBuilder sb = new StringBuilder();
+                    int charRead;
+                    while ((charRead = r.read()) != -1) {
+                        sb.append((char) charRead);
+                    }
+                    content = sb.toString();
+                }
+            } else {
+                content = record.lob().toString();
+            }
+            assertEquals(newXml, content.trim());
+        }
+    }
 }

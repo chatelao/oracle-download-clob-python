@@ -76,12 +76,15 @@ def test_upload_mode(orchestrator, mock_managers, db_config, tmp_path, caplog):
     mock_managers["input"].load_ids.return_value = ["1", "2"]
     mock_managers["processor"].read_from_file.return_value = "content1"
 
+    # Mock column type as CLOB
+    mock_managers["db"].get_lob_column_type.return_value = MagicMock() # not binary
+
     orchestrator.upload_mode(csv_path, input_dir, db_config)
 
     mock_managers["input"].load_ids.assert_called_once_with(csv_path)
     mock_managers["db"].connect.assert_called_once_with(db_config)
     mock_managers["processor"].open_file.assert_called_once()
-    mock_managers["db"].update_clob.assert_called_once()
+    mock_managers["db"].update_lob.assert_called_once()
     mock_managers["db"].commit.assert_called_once()
     mock_managers["db"].close.assert_called_once()
 
@@ -100,12 +103,13 @@ def test_upload_mode_regex(orchestrator, mock_managers, db_config, tmp_path):
     # open_file returns a context manager
     mock_file = MagicMock()
     mock_managers["processor"].open_file.return_value.__enter__.return_value = mock_file
+    mock_managers["db"].get_lob_column_type.return_value = MagicMock() # not binary
 
     orchestrator.upload_mode(csv_path, input_dir, db_config, id_as_regex=True)
 
-    # Check if update_clob was called with the correctly extracted IDs
+    # Check if update_lob was called with the correctly extracted IDs
     # The order of files from iterdir() might vary, so we check calls
     expected_ids = {"123", "abc"}
-    actual_ids = {call.args[0] for call in mock_managers["db"].update_clob.call_args_list}
+    actual_ids = {call.args[0] for call in mock_managers["db"].update_lob.call_args_list}
     assert actual_ids == expected_ids
-    assert mock_managers["db"].update_clob.call_count == 2
+    assert mock_managers["db"].update_lob.call_count == 2

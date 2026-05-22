@@ -150,7 +150,7 @@ def test_fetch_clobs_in_empty(connector, db_config):
         assert len(results) == 0
         mock_conn.cursor.assert_not_called()
 
-def test_update_clob_no_auto_commit(connector, db_config):
+def test_update_lob_no_auto_commit(connector, db_config):
     with patch('oracledb.connect') as mock_connect:
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
@@ -158,7 +158,7 @@ def test_update_clob_no_auto_commit(connector, db_config):
         mock_connect.return_value = mock_conn
 
         connector.connect(db_config)
-        connector.update_clob("1", "new_content")
+        connector.update_lob("1", "new_content")
 
         mock_cursor.execute.assert_called_once()
         args, _ = mock_cursor.execute.call_args
@@ -181,7 +181,7 @@ def test_runtime_error_if_not_connected(connector):
     with pytest.raises(RuntimeError):
         list(connector.fetch_clobs_join())
     with pytest.raises(RuntimeError):
-        connector.update_clob("1", "content")
+        connector.update_lob("1", "content")
 
 def test_connect_error(connector, db_config):
     import oracledb
