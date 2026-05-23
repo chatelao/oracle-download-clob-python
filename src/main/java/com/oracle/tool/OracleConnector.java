@@ -139,6 +139,8 @@ public class OracleConnector implements AutoCloseable {
             lob = rs.getClob(2);
           } else if (columnType == Types.BLOB) {
             lob = rs.getBlob(2);
+          } else if (columnType == Types.SQLXML) {
+            lob = rs.getSQLXML(2);
           } else {
             lob = rs.getObject(2);
           }
@@ -221,6 +223,8 @@ public class OracleConnector implements AutoCloseable {
             lob = rs.getClob(2);
           } else if (columnType == Types.BLOB) {
             lob = rs.getBlob(2);
+          } else if (columnType == Types.SQLXML) {
+            lob = rs.getSQLXML(2);
           } else {
             lob = rs.getObject(2);
           }

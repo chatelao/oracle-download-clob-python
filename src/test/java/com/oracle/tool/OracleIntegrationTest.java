@@ -297,4 +297,75 @@ class OracleIntegrationTest {
             }
         }
     }
+
+    @Test
+    void testBlobUpdate() throws Exception {
+        DBConfig blobConfig = new DBConfig(
+                staticUser,
+                staticPassword,
+                config.dsn(),
+                "BLOB_DATA",
+                "ID",
+                "CONTENT",
+                "GTT_IDS_BLOB_UPDATE"
+        );
+        connector.close();
+        connector.connect(blobConfig);
+
+        String targetId = "2";
+        byte[] newContent = "Updated blob content from Java".getBytes(StandardCharsets.UTF_8);
+        try (InputStream is = new java.io.ByteArrayInputStream(newContent)) {
+            connector.updateLob(targetId, is);
+            connector.commit();
+        }
+
+        connector.createGtt(List.of(targetId));
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            LobRecord record = results.findFirst().orElseThrow();
+            try (InputStream is = ((Blob) record.lob()).getBinaryStream()) {
+                byte[] actualBytes = is.readAllBytes();
+                assertArrayEquals(newContent, actualBytes);
+            }
+        }
+    }
+
+    @Test
+    void testXmlTypeUpdate() throws Exception {
+        DBConfig xmlConfig = new DBConfig(
+                staticUser,
+                staticPassword,
+                config.dsn(),
+                "XMLTYPE_DATA",
+                "ID",
+                "CONTENT",
+                "GTT_IDS_XML_UPDATE"
+        );
+        connector.close();
+        connector.connect(xmlConfig);
+
+        String targetId = "2";
+        String newContent = "<root><item>Updated XML content from Java</item></root>";
+        try (Reader reader = new StringReader(newContent)) {
+            connector.updateLob(targetId, reader);
+            connector.commit();
+        }
+
+        connector.createGtt(List.of(targetId));
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            LobRecord record = results.findFirst().orElseThrow();
+            // XMLType might be returned as SQLXML or OPAQUE or other types depending on driver
+            // Our improved OracleConnector handles SQLXML
+            Object lob = record.lob();
+            String actualContent;
+            if (lob instanceof java.sql.SQLXML sqlxml) {
+                actualContent = sqlxml.getString();
+            } else if (lob instanceof java.sql.Clob clob) {
+                actualContent = clob.getSubString(1, (int) clob.length());
+            } else {
+                actualContent = lob.toString();
+            }
+            // Oracle might return slightly different XML (e.g. with declaration)
+            assertTrue(actualContent.contains("Updated XML content from Java"));
+        }
+    }
 }

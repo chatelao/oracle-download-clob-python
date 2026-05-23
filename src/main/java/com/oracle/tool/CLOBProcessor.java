@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 
 /**
  * Handles streaming of large text data between database and file system.
@@ -36,6 +37,12 @@ public class CLOBProcessor {
       try (InputStream is = blob.getBinaryStream();
           OutputStream os = Files.newOutputStream(targetPath)) {
         is.transferTo(os);
+      }
+    } else if (lob instanceof SQLXML sqlxml) {
+      try (Reader reader = sqlxml.getCharacterStream();
+          BufferedWriter writer = Files.newBufferedWriter(
+              targetPath, StandardCharsets.UTF_8)) {
+        reader.transferTo(writer);
       }
     } else if (lob != null) {
       throw new IllegalArgumentException("Unsupported LOB type: " + lob.getClass().getName());
