@@ -35,23 +35,29 @@ class OracleIntegrationTest {
     @BeforeAll
     static void initDb() throws Exception {
         // First try to use the existing database if it's running (e.g. in CI)
-        String ciJdbcUrl = "jdbc:oracle:thin:@127.0.0.1:1521/FREEPDB1";
-        try (Connection conn = DriverManager.getConnection(ciJdbcUrl, "system", "password")) {
-            System.out.println("Using existing database at " + ciJdbcUrl);
-            configStaticDb(ciJdbcUrl, "system", "password");
-            initializeSchema(conn);
-            return;
-        } catch (SQLException e) {
-            System.out.println("Existing database not found, starting Testcontainers: " + e.getMessage());
+        String[] urls = {"jdbc:oracle:thin:@127.0.0.1:1521/FREEPDB1", "jdbc:oracle:thin:@localhost:1521/FREEPDB1"};
+        for (String url : urls) {
+            try (Connection conn = DriverManager.getConnection(url, "system", "password")) {
+                System.out.println("Using existing database at " + url);
+                configStaticDb(url, "system", "password");
+                initializeSchema(conn);
+                return;
+            } catch (SQLException e) {
+                System.out.println("Could not connect to existing database at " + url + ": " + e.getMessage());
+            }
         }
 
+        System.out.println("Starting Testcontainers fallback...");
         try {
             oracle = new OracleContainer(
                     DockerImageName.parse("container-registry.oracle.com/database/free:latest")
                             .asCompatibleSubstituteFor("gvenzl/oracle-xe"))
-                    .withPassword("password");
+                    .withPassword("password")
+                    .withDatabaseName("FREEPDB1");
             oracle.start();
         } catch (Exception e) {
+            System.err.println("Failed to start Testcontainers: " + e.getMessage());
+            e.printStackTrace();
             Assumptions.abort("Docker is not available or failed to start: " + e.getMessage());
         }
 

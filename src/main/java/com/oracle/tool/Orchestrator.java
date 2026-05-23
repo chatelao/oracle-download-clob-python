@@ -192,12 +192,12 @@ public class Orchestrator {
           if (!Files.exists(filePath)) {
             try (java.nio.file.DirectoryStream<Path> stream =
                      Files.newDirectoryStream(inputDir, idVal + ".*")) {
-                for (Path entry : stream) {
-                    filePath = entry;
-                    break;
-                }
+              for (Path entry : stream) {
+                filePath = entry;
+                break;
+              }
             } catch (Exception e) {
-                // Ignore glob errors
+              // Ignore glob errors
             }
           }
 

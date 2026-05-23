@@ -32,7 +32,7 @@ public class CliCommandConfigTest {
 
         CliCommand.Download download = new CliCommand.Download();
         CommandLine cmd = new CommandLine(download);
-        cmd.execute(
+        cmd.parseArgs(
                 "--config", configPath.toString(),
                 "--csv-path", csvPath.toString(),
                 "--output-dir", outputDir.toString()
@@ -61,7 +61,7 @@ public class CliCommandConfigTest {
 
         CliCommand.Download download = new CliCommand.Download();
         CommandLine cmd = new CommandLine(download);
-        cmd.execute(
+        cmd.parseArgs(
                 "--config", configPath.toString(),
                 "--csv-path", csvPath.toString(),
                 "--output-dir", outputDir.toString()
@@ -89,7 +89,7 @@ public class CliCommandConfigTest {
 
         CliCommand.Download download = new CliCommand.Download();
         CommandLine cmd = new CommandLine(download);
-        cmd.execute(
+        cmd.parseArgs(
                 "--config", configPath.toString(),
                 "--csv-path", csvPath.toString(),
                 "--output-dir", outputDir.toString(),
