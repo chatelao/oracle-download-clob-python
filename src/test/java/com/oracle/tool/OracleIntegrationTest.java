@@ -35,29 +35,60 @@ class OracleIntegrationTest {
     @BeforeAll
     static void initDb() throws Exception {
         // First try to use the existing database if it's running (e.g. in CI)
-        String ciJdbcUrl = "jdbc:oracle:thin:@127.0.0.1:1521/FREEPDB1";
-        try (Connection conn = DriverManager.getConnection(ciJdbcUrl, "system", "password")) {
-            System.out.println("Using existing database at " + ciJdbcUrl);
-            configStaticDb(ciJdbcUrl, "system", "password");
-            initializeSchema(conn);
-            return;
-        } catch (SQLException e) {
-            System.out.println("Existing database not found, starting Testcontainers: " + e.getMessage());
+        // Note: CI might use different service name or SID.
+        String[] urls = {
+            "jdbc:oracle:thin:@127.0.0.1:1521/FREEPDB1",
+            "jdbc:oracle:thin:@localhost:1521/FREEPDB1",
+            "jdbc:oracle:thin:@127.0.0.1:1521/xe",
+            "jdbc:oracle:thin:@127.0.0.1:1521/xepdb1"
+        };
+
+        for (String url : urls) {
+            try (Connection conn = DriverManager.getConnection(url, "system", "password")) {
+                System.out.println("Using existing database at " + url);
+                configStaticDb(url, "system", "password");
+                initializeSchema(conn);
+                return;
+            } catch (SQLException e) {
+                System.out.println("Failed to connect to " + url + ": " + e.getMessage());
+            }
         }
 
+        System.out.println("Existing database not found or unreachable, starting Testcontainers...");
         try {
+            // Using 23ai Free image which is the new standard.
+            // We explicitly set the database name to FREEPDB1 to match the image default.
             oracle = new OracleContainer(
                     DockerImageName.parse("container-registry.oracle.com/database/free:latest")
                             .asCompatibleSubstituteFor("gvenzl/oracle-xe"))
-                    .withPassword("password");
+                    .withPassword("password")
+                    .withDatabaseName("FREEPDB1");
             oracle.start();
+            System.out.println("Testcontainers Oracle started: " + oracle.getJdbcUrl());
         } catch (Exception e) {
+            System.err.println("Docker is not available or failed to start: " + e.getMessage());
             Assumptions.abort("Docker is not available or failed to start: " + e.getMessage());
         }
 
-        try (Connection conn = DriverManager.getConnection(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword())) {
-            configStaticDb(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword());
+        String containerUrl = oracle.getJdbcUrl();
+        try (Connection conn = DriverManager.getConnection(containerUrl, oracle.getUsername(), oracle.getPassword())) {
+            configStaticDb(containerUrl, oracle.getUsername(), oracle.getPassword());
             initializeSchema(conn);
+        } catch (SQLException e) {
+            // Fallback for Oracle 23c/26ai Free which uses FREEPDB1 by default
+            // Testcontainers legacy OracleContainer might default to xepdb1 in the URL
+            if (containerUrl.contains("/xepdb1")) {
+                String fallbackUrl = containerUrl.replace("/xepdb1", "/FREEPDB1");
+                System.out.println("Connection to " + containerUrl + " failed, trying fallback: " + fallbackUrl);
+                try (Connection conn = DriverManager.getConnection(fallbackUrl, oracle.getUsername(), oracle.getPassword())) {
+                    configStaticDb(fallbackUrl, oracle.getUsername(), oracle.getPassword());
+                    initializeSchema(conn);
+                    return;
+                } catch (SQLException e2) {
+                    System.err.println("Fallback also failed: " + e2.getMessage());
+                }
+            }
+            throw e;
         }
     }
 
@@ -295,6 +326,83 @@ class OracleIntegrationTest {
                 String content = new String(bytes, StandardCharsets.UTF_8);
                 assertEquals("Initial blob content for ID 1", content);
             }
+        }
+    }
+
+    @Test
+    void testBlobUpload() throws SQLException, Exception {
+        // Use BLOB_DATA table
+        DBConfig blobConfig = new DBConfig(
+                staticUser,
+                staticPassword,
+                config.dsn(),
+                "BLOB_DATA",
+                "ID",
+                "CONTENT",
+                "GTT_IDS_BLOB_UP"
+        );
+        connector.close();
+        connector.connect(blobConfig);
+
+        String targetId = "1";
+        byte[] newContent = "Updated blob content from Java".getBytes(StandardCharsets.UTF_8);
+        try (InputStream is = new java.io.ByteArrayInputStream(newContent)) {
+            connector.updateLob(targetId, is);
+            connector.commit();
+        }
+
+        // Verify
+        connector.createGtt(List.of(targetId));
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            LobRecord record = results.findFirst().orElseThrow();
+            try (InputStream is = ((Blob) record.lob()).getBinaryStream()) {
+                byte[] bytes = is.readAllBytes();
+                assertArrayEquals(newContent, bytes);
+            }
+        }
+    }
+
+    @Test
+    void testXmlTypeUpload() throws SQLException, Exception {
+        // Use XMLTYPE_DATA table
+        DBConfig xmlConfig = new DBConfig(
+                staticUser,
+                staticPassword,
+                config.dsn(),
+                "XMLTYPE_DATA",
+                "ID",
+                "CONTENT",
+                "GTT_IDS_XML_UP"
+        );
+        connector.close();
+        connector.connect(xmlConfig);
+
+        String targetId = "1";
+        String newXml = "<root><item>Updated XML from Java</item></root>";
+        try (Reader reader = new StringReader(newXml)) {
+            connector.updateLob(targetId, reader);
+            connector.commit();
+        }
+
+        // Verify
+        connector.createGtt(List.of(targetId));
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            LobRecord record = results.findFirst().orElseThrow();
+            // XMLType might come back as Clob or String depending on driver/version
+            String content;
+            if (record.lob() instanceof Clob clob) {
+                try (Reader r = clob.getCharacterStream()) {
+                    StringBuilder sb = new StringBuilder();
+                    int charRead;
+                    while ((charRead = r.read()) != -1) {
+                        sb.append((char) charRead);
+                    }
+                    content = sb.toString();
+                }
+            } else {
+                content = record.lob().toString();
+            }
+            assertEquals(newXml, content.trim());
         }
     }
 }
