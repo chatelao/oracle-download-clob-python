@@ -70,9 +70,25 @@ class OracleIntegrationTest {
             Assumptions.abort("Docker is not available or failed to start: " + e.getMessage());
         }
 
-        try (Connection conn = DriverManager.getConnection(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword())) {
-            configStaticDb(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword());
+        String containerUrl = oracle.getJdbcUrl();
+        try (Connection conn = DriverManager.getConnection(containerUrl, oracle.getUsername(), oracle.getPassword())) {
+            configStaticDb(containerUrl, oracle.getUsername(), oracle.getPassword());
             initializeSchema(conn);
+        } catch (SQLException e) {
+            // Fallback for Oracle 23c/26ai Free which uses FREEPDB1 by default
+            // Testcontainers legacy OracleContainer might default to xepdb1 in the URL
+            if (containerUrl.contains("/xepdb1")) {
+                String fallbackUrl = containerUrl.replace("/xepdb1", "/FREEPDB1");
+                System.out.println("Connection to " + containerUrl + " failed, trying fallback: " + fallbackUrl);
+                try (Connection conn = DriverManager.getConnection(fallbackUrl, oracle.getUsername(), oracle.getPassword())) {
+                    configStaticDb(fallbackUrl, oracle.getUsername(), oracle.getPassword());
+                    initializeSchema(conn);
+                    return;
+                } catch (SQLException e2) {
+                    System.err.println("Fallback also failed: " + e2.getMessage());
+                }
+            }
+            throw e;
         }
     }
 
