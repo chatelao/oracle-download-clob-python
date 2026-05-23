@@ -36,34 +36,50 @@ class OracleIntegrationTest {
     static void initDb() throws Exception {
         // First try to use the existing database if it's running (e.g. in CI)
         String[] urls = {"jdbc:oracle:thin:@127.0.0.1:1521/FREEPDB1", "jdbc:oracle:thin:@localhost:1521/FREEPDB1"};
+
+        boolean connected = false;
         for (String url : urls) {
-            try (Connection conn = DriverManager.getConnection(url, "system", "password")) {
-                System.out.println("Using existing database at " + url);
-                configStaticDb(url, "system", "password");
-                initializeSchema(conn);
-                return;
-            } catch (SQLException e) {
-                System.out.println("Could not connect to existing database at " + url + ": " + e.getMessage());
+            System.out.println("Attempting to connect to existing database at " + url);
+            // Retry loop for service registration
+            for (int i = 0; i < 10; i++) {
+                try (Connection conn = DriverManager.getConnection(url, "system", "password")) {
+                    System.out.println("Successfully connected to existing database at " + url);
+                    configStaticDb(url, "system", "password");
+                    initializeSchema(conn);
+                    connected = true;
+                    break;
+                } catch (SQLException e) {
+                    System.out.println("Attempt " + (i + 1) + " failed: " + e.getMessage());
+                    if (e.getErrorCode() == 12514 || e.getErrorCode() == 12516 || e.getErrorCode() == 12541) {
+                         if (i < 9) {
+                            Thread.sleep(10000); // Wait 10s before retry
+                            continue;
+                        }
+                    }
+                    // For other errors (like invalid credentials), don't retry this URL
+                    break;
+                }
             }
+            if (connected) break;
         }
 
-        System.out.println("Starting Testcontainers fallback...");
-        try {
-            oracle = new OracleContainer(
-                    DockerImageName.parse("container-registry.oracle.com/database/free:latest")
-                            .asCompatibleSubstituteFor("gvenzl/oracle-xe"))
-                    .withPassword("password")
-                    .withDatabaseName("FREEPDB1");
-            oracle.start();
-        } catch (Exception e) {
-            System.err.println("Failed to start Testcontainers: " + e.getMessage());
-            e.printStackTrace();
-            Assumptions.abort("Docker is not available or failed to start: " + e.getMessage());
-        }
+        if (!connected) {
+            System.out.println("Starting Testcontainers fallback...");
+            try {
+                oracle = new OracleContainer(
+                        DockerImageName.parse("gvenzl/oracle-free:latest"))
+                        .withPassword("password");
+                oracle.start();
 
-        try (Connection conn = DriverManager.getConnection(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword())) {
-            configStaticDb(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword());
-            initializeSchema(conn);
+                try (Connection conn = DriverManager.getConnection(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword())) {
+                    configStaticDb(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword());
+                    initializeSchema(conn);
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to start Testcontainers: " + e.getMessage());
+                e.printStackTrace();
+                Assumptions.abort("Docker is not available or failed to start: " + e.getMessage());
+            }
         }
     }
 
