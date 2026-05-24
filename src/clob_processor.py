@@ -33,6 +33,7 @@ class CLOBProcessor:
         """Reads file content for upload. Note: Reads entire file into memory."""
         return source_path.read_text(encoding='utf-8')
 
-    def open_file(self, source_path: Path):
+    def open_file(self, source_path: Path, mode: str = 'r'):
         """Opens a file for reading, providing a handle for streaming."""
-        return source_path.open('r', encoding='utf-8')
+        encoding = 'utf-8' if 'b' not in mode else None
+        return source_path.open(mode, encoding=encoding)

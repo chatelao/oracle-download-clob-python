@@ -78,8 +78,14 @@ class Orchestrator:
         if not patterns_or_ids:
             return
 
+        import oracledb
         self.db_connector.connect(db_config)
         try:
+            col_type = self.db_connector.get_lob_column_type()
+            is_binary = (col_type == oracledb.DB_TYPE_BLOB)
+            mode = 'rb' if is_binary else 'r'
+            ext = '.txt' if not is_binary else '' # For non-regex, keep legacy behavior or adjust
+
             upload_count = 0
             if id_as_regex:
                 import re
@@ -99,20 +105,30 @@ class Orchestrator:
                         if match:
                             db_id = match.group(1) if match.groups() else match.group(0)
                             logger.info(f"Matched file {filename} with pattern {cp.pattern} -> ID: {db_id}")
-                            with self.clob_processor.open_file(file_path) as f:
-                                self.db_connector.update_clob(db_id, f)
+                            with self.clob_processor.open_file(file_path, mode=mode) as f:
+                                self.db_connector.update_lob(db_id, f)
                             upload_count += 1
                             break
             else:
+                # Try with .txt, then without extension if not found
                 for id_val in patterns_or_ids:
                     file_path = input_dir / f"{id_val}.txt"
+                    if not file_path.exists():
+                        file_path = input_dir / id_val
+
+                    if not file_path.exists():
+                        # Try globbing
+                        matches = list(input_dir.glob(f"{id_val}.*"))
+                        if matches:
+                            file_path = matches[0]
+
                     if file_path.exists():
                         logger.info(f"Uploading file {file_path.name} for ID {id_val}")
-                        with self.clob_processor.open_file(file_path) as f:
-                            self.db_connector.update_clob(id_val, f)
+                        with self.clob_processor.open_file(file_path, mode=mode) as f:
+                            self.db_connector.update_lob(id_val, f)
                         upload_count += 1
                     else:
-                        logger.warning(f"File not found for ID {id_val}: {file_path}")
+                        logger.warning(f"File not found for ID {id_val} in {input_dir}")
             self.db_connector.commit()
             logger.info(f"Total files uploaded: {upload_count}")
         finally:
