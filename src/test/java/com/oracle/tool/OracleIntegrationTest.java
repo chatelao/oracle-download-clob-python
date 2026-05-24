@@ -55,10 +55,29 @@ class OracleIntegrationTest {
             Assumptions.abort("Docker is not available or failed to start: " + e.getMessage());
         }
 
-        try (Connection conn = DriverManager.getConnection(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword())) {
-            configStaticDb(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword());
-            initializeSchema(conn);
+        // Retry logic for container database connection
+        int maxRetries = 10;
+        int retryDelayMs = 10000;
+        SQLException lastEx = null;
+
+        for (int i = 0; i < maxRetries; i++) {
+            try (Connection conn = DriverManager.getConnection(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword())) {
+                configStaticDb(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword());
+                initializeSchema(conn);
+                return;
+            } catch (SQLException e) {
+                lastEx = e;
+                // ORA-12514: listener does not currently know of service requested in connect descriptor
+                // ORA-17002: I/O error: connection refused
+                if (e.getErrorCode() == 12514 || e.getErrorCode() == 17002 || e.getMessage().contains("ORA-12514")) {
+                    System.out.println("Database not ready yet, retrying... (" + (i + 1) + "/" + maxRetries + ")");
+                    Thread.sleep(retryDelayMs);
+                } else {
+                    throw e;
+                }
+            }
         }
+        throw lastEx;
     }
 
     private static String staticJdbcUrl;
