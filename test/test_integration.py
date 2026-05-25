@@ -49,7 +49,7 @@ def test_update_clob_integration(connector):
     # Use ID 3
     new_content = "Updated content via integration test"
     target_id = "3"
-    connector.update_clob(target_id, new_content)
+    connector.update_lob(target_id, new_content)
     connector.commit()
 
     # Verify the update
@@ -67,7 +67,7 @@ def test_large_clob_integration(connector):
     # Create a large string (> 64KB)
     large_content = "A" * (70 * 1024)
     target_id = "4"
-    connector.update_clob(target_id, large_content)
+    connector.update_lob(target_id, large_content)
     connector.commit()
 
     connector.create_gtt([target_id])
@@ -82,7 +82,7 @@ def test_large_clob_integration(connector):
 def test_empty_clob_integration(connector):
     # Use ID 5
     target_id = "5"
-    connector.update_clob(target_id, "")
+    connector.update_lob(target_id, "")
     connector.commit()
 
     connector.create_gtt([target_id])
@@ -99,7 +99,7 @@ def test_unicode_clob_integration(connector):
     # Use ID 6
     unicode_content = "Hello 🌍, Special characters: ñ, á, é, í, ó, ú, ⚡"
     target_id = "6"
-    connector.update_clob(target_id, unicode_content)
+    connector.update_lob(target_id, unicode_content)
     connector.commit()
 
     connector.create_gtt([target_id])
@@ -110,6 +110,56 @@ def test_unicode_clob_integration(connector):
     if hasattr(content, 'read'):
         content = content.read()
     assert str(content) == unicode_content
+
+def test_blob_update(connector, db_config):
+    blob_config = DBConfig(
+        user=db_config.user,
+        password=db_config.password,
+        dsn=db_config.dsn,
+        target_table="BLOB_DATA",
+        id_column="ID",
+        clob_column="CONTENT",
+        gtt_name="GTT_IDS_BLOB"
+    )
+    connector.close()
+    connector.connect(blob_config)
+
+    target_id = "2"
+    new_content = b"Updated blob content"
+    connector.update_lob(target_id, new_content)
+    connector.commit()
+
+    connector.create_gtt([target_id])
+    results = list(connector.fetch_clobs_join())
+    content = results[0][1]
+    if hasattr(content, 'read'):
+        content = content.read()
+    assert content == new_content
+
+def test_xmltype_update(connector, db_config):
+    xml_config = DBConfig(
+        user=db_config.user,
+        password=db_config.password,
+        dsn=db_config.dsn,
+        target_table="XMLTYPE_DATA",
+        id_column="ID",
+        clob_column="CONTENT",
+        gtt_name="GTT_IDS_XML"
+    )
+    connector.close()
+    connector.connect(xml_config)
+
+    target_id = "2"
+    new_content = "<root><item>Updated XML content</item></root>"
+    connector.update_lob(target_id, new_content)
+    connector.commit()
+
+    connector.create_gtt([target_id])
+    results = list(connector.fetch_clobs_join())
+    content = results[0][1]
+    if hasattr(content, 'read'):
+        content = content.read()
+    assert str(content) == new_content
 
 def test_non_existent_id_integration(connector):
     # GTT has an ID that doesn't exist in CLOB_DATA

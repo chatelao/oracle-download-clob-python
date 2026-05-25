@@ -25,8 +25,8 @@ public class ConsoleProgressReporter implements ProgressReporter {
   }
 
   @Override
-  public void update(int n) {
-    this.current += n;
+  public void update(int delta) {
+    this.current += delta;
     render();
     if (this.current >= this.total) {
       finish();

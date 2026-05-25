@@ -27,6 +27,19 @@ CREATE TABLE BLOB_DATA (
 );
 
 INSERT INTO BLOB_DATA (ID, CONTENT) VALUES ('1', utl_raw.cast_to_raw('Initial blob content for ID 1'));
+INSERT INTO BLOB_DATA (ID, CONTENT) VALUES ('2', utl_raw.cast_to_raw('Initial blob content for ID 2'));
+INSERT INTO BLOB_DATA (ID, CONTENT) VALUES ('3', utl_raw.cast_to_raw('Initial blob content for ID 3'));
+
+DROP TABLE XMLTYPE_DATA;
+
+CREATE TABLE XMLTYPE_DATA (
+    ID VARCHAR2(255) PRIMARY KEY,
+    CONTENT XMLTYPE
+);
+
+INSERT INTO XMLTYPE_DATA (ID, CONTENT) VALUES ('1', XMLTYPE('<root><item>Initial XML content for ID 1</item></root>'));
+INSERT INTO XMLTYPE_DATA (ID, CONTENT) VALUES ('2', XMLTYPE('<root><item>Initial XML content for ID 2</item></root>'));
+INSERT INTO XMLTYPE_DATA (ID, CONTENT) VALUES ('3', XMLTYPE('<root><item>Initial XML content for ID 3</item></root>'));
 
 COMMIT;
 

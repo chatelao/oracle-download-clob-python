@@ -184,13 +184,29 @@ public class Orchestrator {
         }
       } else {
         for (String idVal : patternsOrIds) {
+          // Flexible file matching: {id}.txt, then {id}, then {id}.*
           Path filePath = inputDir.resolve(idVal + ".txt");
+          if (!Files.exists(filePath)) {
+            filePath = inputDir.resolve(idVal);
+          }
+          if (!Files.exists(filePath)) {
+            try (java.nio.file.DirectoryStream<Path> stream =
+                     Files.newDirectoryStream(inputDir, idVal + ".*")) {
+              for (Path entry : stream) {
+                filePath = entry;
+                break;
+              }
+            } catch (Exception e) {
+              // Ignore glob errors
+            }
+          }
+
           if (Files.exists(filePath)) {
             logger.info("Uploading file {} for ID {}", filePath.getFileName(), idVal);
             updateSingleLob(idVal, filePath, isBinary);
             uploadCount++;
           } else {
-            logger.warn("File not found for ID {}: {}", idVal, filePath);
+            logger.warn("File not found for ID {} in {}", idVal, inputDir);
           }
         }
       }

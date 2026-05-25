@@ -9,6 +9,9 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/**
+ * Unit tests for configuration file loading in CliCommand.
+ */
 public class CliCommandConfigTest {
 
     @TempDir
@@ -32,7 +35,8 @@ public class CliCommandConfigTest {
 
         CliCommand.Download download = new CliCommand.Download();
         CommandLine cmd = new CommandLine(download);
-        cmd.execute(
+        // Use parseArgs instead of execute to avoid calling the business logic (which requires DB)
+        cmd.parseArgs(
                 "--config", configPath.toString(),
                 "--csv-path", csvPath.toString(),
                 "--output-dir", outputDir.toString()
@@ -61,7 +65,7 @@ public class CliCommandConfigTest {
 
         CliCommand.Download download = new CliCommand.Download();
         CommandLine cmd = new CommandLine(download);
-        cmd.execute(
+        cmd.parseArgs(
                 "--config", configPath.toString(),
                 "--csv-path", csvPath.toString(),
                 "--output-dir", outputDir.toString()
@@ -89,7 +93,7 @@ public class CliCommandConfigTest {
 
         CliCommand.Download download = new CliCommand.Download();
         CommandLine cmd = new CommandLine(download);
-        cmd.execute(
+        cmd.parseArgs(
                 "--config", configPath.toString(),
                 "--csv-path", csvPath.toString(),
                 "--output-dir", outputDir.toString(),

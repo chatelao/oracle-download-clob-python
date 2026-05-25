@@ -35,29 +35,54 @@ class OracleIntegrationTest {
     @BeforeAll
     static void initDb() throws Exception {
         // First try to use the existing database if it's running (e.g. in CI)
-        String ciJdbcUrl = "jdbc:oracle:thin:@127.0.0.1:1521/FREEPDB1";
-        try (Connection conn = DriverManager.getConnection(ciJdbcUrl, "system", "password")) {
-            System.out.println("Using existing database at " + ciJdbcUrl);
-            configStaticDb(ciJdbcUrl, "system", "password");
-            initializeSchema(conn);
-            return;
-        } catch (SQLException e) {
-            System.out.println("Existing database not found, starting Testcontainers: " + e.getMessage());
+        String[] urls = {"jdbc:oracle:thin:@127.0.0.1:1521/FREEPDB1", "jdbc:oracle:thin:@localhost:1521/FREEPDB1"};
+
+        boolean connected = false;
+        for (String url : urls) {
+            System.out.println("Attempting to connect to existing database at " + url);
+            // Increased retries and wait times for service registration in CI
+            for (int i = 0; i < 20; i++) {
+                try (Connection conn = DriverManager.getConnection(url, "system", "password")) {
+                    System.out.println("Successfully connected to existing database at " + url);
+                    configStaticDb(url, "system", "password");
+                    initializeSchema(conn);
+                    connected = true;
+                    break;
+                } catch (SQLException e) {
+                    System.out.println("Attempt " + (i + 1) + " failed: " + e.getMessage() + " (Code: " + e.getErrorCode() + ")");
+                    // Retry on common networking/registration/logon errors during startup
+                    if (e.getErrorCode() == 12514 || e.getErrorCode() == 12516 || e.getErrorCode() == 12541
+                        || e.getErrorCode() == 17002 || e.getErrorCode() == 1017) {
+                         if (i < 19) {
+                            Thread.sleep(10000); // Wait 10s before retry
+                            continue;
+                        }
+                    }
+                    // For other errors, don't retry this URL
+                    break;
+                }
+            }
+            if (connected) break;
         }
 
-        try {
-            oracle = new OracleContainer(
-                    DockerImageName.parse("container-registry.oracle.com/database/free:latest")
-                            .asCompatibleSubstituteFor("gvenzl/oracle-xe"))
-                    .withPassword("password");
-            oracle.start();
-        } catch (Exception e) {
-            Assumptions.abort("Docker is not available or failed to start: " + e.getMessage());
-        }
+        if (!connected) {
+            System.out.println("Starting Testcontainers fallback...");
+            try {
+                oracle = new OracleContainer(
+                        DockerImageName.parse("gvenzl/oracle-free:latest"))
+                        .withPassword("password")
+                        .withDatabaseName("FREEPDB1");
+                oracle.start();
 
-        try (Connection conn = DriverManager.getConnection(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword())) {
-            configStaticDb(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword());
-            initializeSchema(conn);
+                try (Connection conn = DriverManager.getConnection(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword())) {
+                    configStaticDb(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword());
+                    initializeSchema(conn);
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to start Testcontainers: " + e.getMessage());
+                e.printStackTrace();
+                Assumptions.abort("Docker is not available or failed to start: " + e.getMessage());
+            }
         }
     }
 
@@ -295,6 +320,77 @@ class OracleIntegrationTest {
                 String content = new String(bytes, StandardCharsets.UTF_8);
                 assertEquals("Initial blob content for ID 1", content);
             }
+        }
+    }
+
+    @Test
+    void testBlobUpdate() throws Exception {
+        DBConfig blobConfig = new DBConfig(
+                staticUser,
+                staticPassword,
+                config.dsn(),
+                "BLOB_DATA",
+                "ID",
+                "CONTENT",
+                "GTT_IDS_BLOB_UPDATE"
+        );
+        connector.close();
+        connector.connect(blobConfig);
+
+        String targetId = "2";
+        byte[] newContent = "Updated blob content from Java".getBytes(StandardCharsets.UTF_8);
+        try (InputStream is = new java.io.ByteArrayInputStream(newContent)) {
+            connector.updateLob(targetId, is);
+            connector.commit();
+        }
+
+        connector.createGtt(List.of(targetId));
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            LobRecord record = results.findFirst().orElseThrow();
+            try (InputStream is = ((Blob) record.lob()).getBinaryStream()) {
+                byte[] actualBytes = is.readAllBytes();
+                assertArrayEquals(newContent, actualBytes);
+            }
+        }
+    }
+
+    @Test
+    void testXmlTypeUpdate() throws Exception {
+        DBConfig xmlConfig = new DBConfig(
+                staticUser,
+                staticPassword,
+                config.dsn(),
+                "XMLTYPE_DATA",
+                "ID",
+                "CONTENT",
+                "GTT_IDS_XML_UPDATE"
+        );
+        connector.close();
+        connector.connect(xmlConfig);
+
+        String targetId = "2";
+        String newContent = "<root><item>Updated XML content from Java</item></root>";
+        try (Reader reader = new StringReader(newContent)) {
+            connector.updateLob(targetId, reader);
+            connector.commit();
+        }
+
+        connector.createGtt(List.of(targetId));
+        try (Stream<LobRecord> results = connector.fetchClobsJoin()) {
+            LobRecord record = results.findFirst().orElseThrow();
+            // XMLType might be returned as SQLXML or OPAQUE or other types depending on driver
+            // Our improved OracleConnector handles SQLXML
+            Object lob = record.lob();
+            String actualContent;
+            if (lob instanceof java.sql.SQLXML sqlxml) {
+                actualContent = sqlxml.getString();
+            } else if (lob instanceof java.sql.Clob clob) {
+                actualContent = clob.getSubString(1, (int) clob.length());
+            } else {
+                actualContent = lob.toString();
+            }
+            // Oracle might return slightly different XML (e.g. with declaration)
+            assertTrue(actualContent.contains("Updated XML content from Java"));
         }
     }
 }
