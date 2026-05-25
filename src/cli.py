@@ -146,7 +146,8 @@ def download(csv_path, output_dir, user, password, dsn, table, query, id_column,
 @click.option('--id-column', required=True, help='Column name for IDs.')
 @click.option('--clob-column', required=True, help='Column name for CLOBs.')
 @click.option('--id-as-regex', is_flag=True, help='Treat IDs as regex patterns to match filenames.')
-def upload(csv_path, input_dir, user, password, dsn, table, id_column, clob_column, id_as_regex):
+@click.option('--batch-size', default=100, help='Batch size for periodic commits.')
+def upload(csv_path, input_dir, user, password, dsn, table, id_column, clob_column, id_as_regex, batch_size):
     """Upload local files to Oracle CLOBs."""
     try:
         db_config = DBConfig(
@@ -165,8 +166,8 @@ def upload(csv_path, input_dir, user, password, dsn, table, id_column, clob_colu
             fs_manager=FSManager()
         )
 
-        logger.info(f"Starting upload mode. CSV: {csv_path}, Input: {input_dir}, ID as Regex: {id_as_regex}")
-        orchestrator.upload_mode(Path(csv_path), Path(input_dir), db_config, id_as_regex=id_as_regex)
+        logger.info(f"Starting upload mode. CSV: {csv_path}, Input: {input_dir}, ID as Regex: {id_as_regex}, Batch Size: {batch_size}")
+        orchestrator.upload_mode(Path(csv_path), Path(input_dir), db_config, id_as_regex=id_as_regex, batch_size=batch_size)
         logger.info("Upload completed successfully.")
     except Exception as e:
         logger.error(f"Upload failed: {e}")
