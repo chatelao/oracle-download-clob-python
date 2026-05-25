@@ -41,7 +41,7 @@ class OracleIntegrationTest {
         for (String url : urls) {
             System.out.println("Attempting to connect to existing database at " + url);
             // Increased retries and wait times for service registration in CI
-            for (int i = 0; i < 15; i++) {
+            for (int i = 0; i < 20; i++) {
                 try (Connection conn = DriverManager.getConnection(url, "system", "password")) {
                     System.out.println("Successfully connected to existing database at " + url);
                     configStaticDb(url, "system", "password");
@@ -50,14 +50,15 @@ class OracleIntegrationTest {
                     break;
                 } catch (SQLException e) {
                     System.out.println("Attempt " + (i + 1) + " failed: " + e.getMessage() + " (Code: " + e.getErrorCode() + ")");
-                    // Retry on common networking/registration errors
-                    if (e.getErrorCode() == 12514 || e.getErrorCode() == 12516 || e.getErrorCode() == 12541 || e.getErrorCode() == 17002) {
-                         if (i < 14) {
+                    // Retry on common networking/registration/logon errors during startup
+                    if (e.getErrorCode() == 12514 || e.getErrorCode() == 12516 || e.getErrorCode() == 12541
+                        || e.getErrorCode() == 17002 || e.getErrorCode() == 1017) {
+                         if (i < 19) {
                             Thread.sleep(10000); // Wait 10s before retry
                             continue;
                         }
                     }
-                    // For other errors (like invalid credentials), don't retry this URL
+                    // For other errors, don't retry this URL
                     break;
                 }
             }

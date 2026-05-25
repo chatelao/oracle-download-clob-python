@@ -6,7 +6,7 @@ package com.oracle.tool;
 public interface ProgressReporter {
   void setTotal(int total);
 
-  void update(int n);
+  void update(int delta);
 
   void finish();
 }
