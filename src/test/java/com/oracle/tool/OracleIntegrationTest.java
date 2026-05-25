@@ -70,7 +70,8 @@ class OracleIntegrationTest {
             try {
                 oracle = new OracleContainer(
                         DockerImageName.parse("gvenzl/oracle-free:latest"))
-                        .withPassword("password");
+                        .withPassword("password")
+                        .withDatabaseName("FREEPDB1");
                 oracle.start();
 
                 try (Connection conn = DriverManager.getConnection(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword())) {

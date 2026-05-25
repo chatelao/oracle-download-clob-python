@@ -124,7 +124,8 @@ public class OracleConnector implements AutoCloseable {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     final int columnType = rs.getMetaData().getColumnType(2);
-    final boolean hasFilename = config.filenameColumn() != null && !config.filenameColumn().isEmpty();
+    final boolean hasFilename = config.filenameColumn() != null
+        && !config.filenameColumn().isEmpty();
 
     return StreamSupport.stream(new Spliterators.AbstractSpliterator<LobRecord>(
         Long.MAX_VALUE, 0) {
@@ -208,7 +209,8 @@ public class OracleConnector implements AutoCloseable {
 
     ResultSet rs = pstmt.executeQuery();
     final int columnType = rs.getMetaData().getColumnType(2);
-    final boolean hasFilename = config.filenameColumn() != null && !config.filenameColumn().isEmpty();
+    final boolean hasFilename = config.filenameColumn() != null
+        && !config.filenameColumn().isEmpty();
 
     return StreamSupport.stream(new Spliterators.AbstractSpliterator<LobRecord>(
         Long.MAX_VALUE, 0) {

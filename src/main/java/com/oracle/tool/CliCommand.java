@@ -173,7 +173,8 @@ public class CliCommand implements Runnable {
         description = "Column name for CLOBs or BLOBs.")
     String clobColumn;
 
-    @Option(names = "--id-as-regex", description = "Treat IDs as regex patterns to match filenames.")
+    @Option(names = "--id-as-regex",
+        description = "Treat IDs as regex patterns to match filenames.")
     private boolean idAsRegex;
 
     @Override
