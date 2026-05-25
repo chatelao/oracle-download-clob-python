@@ -176,6 +176,10 @@ public class CliCommand implements Runnable {
     @Option(names = "--id-as-regex", description = "Treat IDs as regex patterns to match filenames.")
     private boolean idAsRegex;
 
+    @Option(names = "--batch-size", defaultValue = "100",
+        description = "Batch size for periodic commits.")
+    private int batchSize;
+
     @Override
     public Integer call() throws Exception {
       if (parent != null && parent.debug) {
@@ -185,9 +189,9 @@ public class CliCommand implements Runnable {
         DBConfig dbConfig = new DBConfig(user, password, dsn, table, idColumn, clobColumn);
         Orchestrator orchestrator = createOrchestrator();
 
-        logger.info("Starting upload mode. CSV: {}, Input: {}, ID as Regex: {}",
-            csvPath, inputDir, idAsRegex);
-        orchestrator.uploadMode(csvPath, inputDir, dbConfig, idAsRegex);
+        logger.info("Starting upload mode. CSV: {}, Input: {}, ID as Regex: {}, Batch Size: {}",
+            csvPath, inputDir, idAsRegex, batchSize);
+        orchestrator.uploadMode(csvPath, inputDir, dbConfig, idAsRegex, batchSize);
         logger.info("Upload completed successfully.");
         return 0;
       } catch (Exception ex) {

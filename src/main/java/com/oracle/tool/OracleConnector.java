@@ -247,9 +247,10 @@ public class OracleConnector implements AutoCloseable {
    *
    * @param id      Record ID.
    * @param content Reader or InputStream providing LOB content.
+   * @return Number of rows affected.
    * @throws SQLException If a database access error occurs.
    */
-  public void updateLob(String id, Object content) throws SQLException {
+  public int updateLob(String id, Object content) throws SQLException {
     if (conn == null) {
       throw new SQLException("Database not connected");
     }
@@ -268,7 +269,7 @@ public class OracleConnector implements AutoCloseable {
         pstmt.setObject(1, content);
       }
       pstmt.setString(2, id);
-      pstmt.executeUpdate();
+      return pstmt.executeUpdate();
     }
   }
 

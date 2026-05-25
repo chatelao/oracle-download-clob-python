@@ -75,6 +75,7 @@ def test_upload_mode(orchestrator, mock_managers, db_config, tmp_path, caplog):
 
     mock_managers["input"].load_ids.return_value = ["1", "2"]
     mock_managers["processor"].read_from_file.return_value = "content1"
+    mock_managers["db"].update_lob.return_value = 1
 
     orchestrator.upload_mode(csv_path, input_dir, db_config)
 
@@ -89,7 +90,7 @@ def test_upload_mode(orchestrator, mock_managers, db_config, tmp_path, caplog):
     with caplog.at_level("INFO"):
         orchestrator.upload_mode(csv_path, input_dir, db_config)
         assert "Uploading file 1.txt for ID 1" in caplog.text
-        assert "Total files uploaded: 1" in caplog.text
+        assert "Total files attempted: 1, Successfully updated: 1" in caplog.text
 
 def test_upload_mode_regex(orchestrator, mock_managers, db_config, tmp_path, caplog):
     csv_path = tmp_path / "patterns.csv"
@@ -101,6 +102,7 @@ def test_upload_mode_regex(orchestrator, mock_managers, db_config, tmp_path, cap
     (input_dir / "no_match.txt").write_text("no_match")
 
     mock_managers["input"].load_ids.return_value = ["([0-9]+)_data", "prefix_(.*)\\.txt"]
+    mock_managers["db"].update_lob.return_value = 1
     # open_file returns a context manager
     mock_file = MagicMock()
     mock_managers["processor"].open_file.return_value.__enter__.return_value = mock_file
@@ -114,4 +116,4 @@ def test_upload_mode_regex(orchestrator, mock_managers, db_config, tmp_path, cap
         actual_ids = {call.args[0] for call in mock_managers["db"].update_lob.call_args_list}
         assert actual_ids == expected_ids
         assert mock_managers["db"].update_lob.call_count == 2
-        assert "Total files uploaded: 2" in caplog.text
+        assert "Total files attempted: 2, Successfully updated: 2" in caplog.text

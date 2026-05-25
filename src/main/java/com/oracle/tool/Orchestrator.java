@@ -128,20 +128,22 @@ public class Orchestrator {
    */
   public void uploadMode(Path csvPath, Path inputDir, DBConfig dbConfig)
       throws IOException, SQLException {
-    uploadMode(csvPath, inputDir, dbConfig, false);
+    uploadMode(csvPath, inputDir, dbConfig, false, 100);
   }
 
   /**
-   * Orchestrates UC-2: Upload CLOBs with optional regex matching.
+   * Orchestrates UC-2: Upload CLOBs with optional regex matching and batch size.
    *
    * @param csvPath     Path to the CSV file containing IDs.
    * @param inputDir    Directory containing files to upload.
    * @param dbConfig    Database configuration.
    * @param idAsRegex   Whether to treat IDs as regex patterns.
+   * @param batchSize   Batch size for periodic commits.
    * @throws IOException  If an I/O error occurs.
    * @throws SQLException If a database access error occurs.
    */
-  public void uploadMode(Path csvPath, Path inputDir, DBConfig dbConfig, boolean idAsRegex)
+  public void uploadMode(Path csvPath, Path inputDir, DBConfig dbConfig, boolean idAsRegex,
+      int batchSize)
       throws IOException, SQLException {
     List<String> patternsOrIds = inputManager.loadIds(csvPath);
     if (patternsOrIds.isEmpty()) {
@@ -153,7 +155,8 @@ public class Orchestrator {
     try {
       int columnType = dbConnector.getLobColumnType();
       boolean isBinary = (columnType == Types.BLOB);
-      int uploadCount = 0;
+      int uploadAttempted = 0;
+      int uploadSuccess = 0;
 
       if (idAsRegex) {
         List<Pattern> compiledPatterns = new ArrayList<>();
@@ -175,8 +178,15 @@ public class Orchestrator {
                 String dbId = matcher.groupCount() > 0 ? matcher.group(1) : matcher.group(0);
                 logger.info("Matched file {} with pattern {} -> ID: {}",
                     filename, pattern.pattern(), dbId);
-                updateSingleLob(dbId, filePath, isBinary);
-                uploadCount++;
+                if (updateSingleLob(dbId, filePath, isBinary)) {
+                  uploadSuccess++;
+                } else {
+                  logger.warn("No rows updated for ID {}. Record may not exist.", dbId);
+                }
+                uploadAttempted++;
+                if (uploadAttempted % batchSize == 0) {
+                  dbConnector.commit();
+                }
                 break;
               }
             }
@@ -185,32 +195,54 @@ public class Orchestrator {
       } else {
         for (String idVal : patternsOrIds) {
           Path filePath = inputDir.resolve(idVal + ".txt");
+          if (!Files.exists(filePath)) {
+            filePath = inputDir.resolve(idVal);
+          }
+          if (!Files.exists(filePath)) {
+            try (Stream<Path> matches = Files.list(inputDir)) {
+              filePath = matches
+                  .filter(p -> p.getFileName().toString().startsWith(idVal + "."))
+                  .findFirst()
+                  .orElse(filePath);
+            }
+          }
+
           if (Files.exists(filePath)) {
             logger.info("Uploading file {} for ID {}", filePath.getFileName(), idVal);
-            updateSingleLob(idVal, filePath, isBinary);
-            uploadCount++;
+            if (updateSingleLob(idVal, filePath, isBinary)) {
+              uploadSuccess++;
+            } else {
+              logger.warn("No rows updated for ID {}. Record may not exist.", idVal);
+            }
+            uploadAttempted++;
+            if (uploadAttempted % batchSize == 0) {
+              dbConnector.commit();
+            }
           } else {
             logger.warn("File not found for ID {}: {}", idVal, filePath);
           }
         }
       }
       dbConnector.commit();
-      logger.info("Total files uploaded: {}", uploadCount);
+      logger.info("Total files attempted: {}, Successfully updated: {}",
+          uploadAttempted, uploadSuccess);
     } finally {
       dbConnector.close();
     }
   }
 
-  private void updateSingleLob(String idVal, Path filePath, boolean isBinary)
+  private boolean updateSingleLob(String idVal, Path filePath, boolean isBinary)
       throws IOException, SQLException {
+    int affected;
     if (isBinary) {
       try (InputStream is = clobProcessor.openFileAsStream(filePath)) {
-        dbConnector.updateLob(idVal, is);
+        affected = dbConnector.updateLob(idVal, is);
       }
     } else {
       try (Reader reader = clobProcessor.openFile(filePath)) {
-        dbConnector.updateLob(idVal, reader);
+        affected = dbConnector.updateLob(idVal, reader);
       }
     }
+    return affected > 0;
   }
 }
