@@ -84,7 +84,6 @@ class Orchestrator:
             col_type = self.db_connector.get_lob_column_type()
             is_binary = (col_type == oracledb.DB_TYPE_BLOB)
             mode = 'rb' if is_binary else 'r'
-            ext = '.txt' if not is_binary else '' # For non-regex, keep legacy behavior or adjust
 
             upload_count = 0
             if id_as_regex:

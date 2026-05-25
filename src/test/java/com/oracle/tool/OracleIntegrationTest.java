@@ -47,23 +47,33 @@ class OracleIntegrationTest {
             "jdbc:oracle:thin:@localhost:1521/FREEPDB1"
         };
 
+        System.out.println("Checking for existing Oracle database...");
         for (String url : possibleUrls) {
-            try (Connection conn = DriverManager.getConnection(url, "system", "password")) {
-                System.out.println("Using existing database at " + url);
-                configStaticDb(url, "system", "password");
-                initializeSchema(conn);
-                return;
-            } catch (SQLException e) {
-                System.out.println("Attempt to connect to existing DB at " + url + " failed: " + e.getMessage());
+            // Retry connecting to existing DB as it might be starting up
+            for (int i = 0; i < 5; i++) {
+                try (Connection conn = DriverManager.getConnection(url, "system", "password")) {
+                    System.out.println("Using existing database at " + url);
+                    configStaticDb(url, "system", "password");
+                    initializeSchema(conn);
+                    return;
+                } catch (SQLException e) {
+                    if (e.getErrorCode() == 12514 || e.getErrorCode() == 17002) {
+                        System.out.println("Existing DB at " + url + " not ready, retrying... (" + (i + 1) + "/5)");
+                        Thread.sleep(5000);
+                    } else {
+                        System.out.println("Attempt to connect to existing DB at " + url + " failed: " + e.getMessage());
+                        break;
+                    }
+                }
             }
         }
 
         System.out.println("Existing database not found on standard ports, starting Testcontainers...");
         try {
+            // Using a more standard image and faststart for reliability
             oracle = new OracleContainer(
-                    DockerImageName.parse("container-registry.oracle.com/database/free:latest")
-                            .asCompatibleSubstituteFor("gvenzl/oracle-xe"))
-                    .withDatabaseName("FREEPDB1")
+                    DockerImageName.parse("gvenzl/oracle-xe:21-slim-faststart"))
+                    .withDatabaseName("xepdb1")
                     .withPassword("password");
             oracle.start();
         } catch (Exception e) {
