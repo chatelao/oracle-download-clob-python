@@ -32,6 +32,12 @@ public class CLOBProcessor {
               targetPath, StandardCharsets.UTF_8)) {
         reader.transferTo(writer);
       }
+    } else if (lob instanceof java.sql.SQLXML sqlxml) {
+      try (Reader reader = sqlxml.getCharacterStream();
+          BufferedWriter writer = Files.newBufferedWriter(
+              targetPath, StandardCharsets.UTF_8)) {
+        reader.transferTo(writer);
+      }
     } else if (lob instanceof Blob blob) {
       try (InputStream is = blob.getBinaryStream();
           OutputStream os = Files.newOutputStream(targetPath)) {

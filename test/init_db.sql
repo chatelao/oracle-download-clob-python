@@ -1,5 +1,5 @@
 -- test/init_db.sql
--- Create a test table for CLOB operations
+-- Create test tables for CLOB, BLOB, and XMLTYPE operations
 
 DROP TABLE CLOB_DATA;
 
@@ -18,6 +18,7 @@ INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('7', 'Initial content for ID 7');
 INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('8', 'Initial content for ID 8');
 INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('9', 'Initial content for ID 9');
 INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('10', 'Initial content for ID 10');
+INSERT INTO CLOB_DATA (ID, CONTENT) VALUES ('101', 'Old CLOB');
 
 DROP TABLE BLOB_DATA;
 
@@ -27,6 +28,16 @@ CREATE TABLE BLOB_DATA (
 );
 
 INSERT INTO BLOB_DATA (ID, CONTENT) VALUES ('1', utl_raw.cast_to_raw('Initial blob content for ID 1'));
+INSERT INTO BLOB_DATA (ID, CONTENT) VALUES ('102', utl_raw.cast_to_raw('Old BLOB'));
+
+DROP TABLE XMLTYPE_DATA;
+
+CREATE TABLE XMLTYPE_DATA (
+    ID VARCHAR2(255) PRIMARY KEY,
+    CONTENT XMLTYPE
+);
+
+INSERT INTO XMLTYPE_DATA (ID, CONTENT) VALUES ('103', XMLTYPE('<old>data</old>'));
 
 COMMIT;
 

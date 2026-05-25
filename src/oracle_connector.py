@@ -120,15 +120,30 @@ class OracleConnector:
                 for row in rows:
                     yield row
 
-    def update_clob(self, id: str, content: Union[str, TextIO]):
-        """Updates a specific record with new CLOB data.
-        Accepts either a string or a file-like object for streaming."""
+    def update_lob(self, id: str, content: Union[str, bytes, TextIO, Any]):
+        """Updates a specific record with new LOB data.
+        Accepts a string, bytes, or a file-like object for streaming."""
         if not self.conn or not self.config:
             raise RuntimeError("Database not connected")
 
         sql = f"UPDATE {self.config.target_table} SET {self.config.clob_column} = :1 WHERE {self.config.id_column} = :2"
         with self.conn.cursor() as cursor:
             cursor.execute(sql, (content, id))
+
+    def update_clob(self, id: str, content: Union[str, TextIO]):
+        """Alias for update_lob for backward compatibility."""
+        self.update_lob(id, content)
+
+    def get_lob_column_type(self) -> "oracledb.DbType":
+        """Determines the database type of the LOB column."""
+        if not self.conn or not self.config:
+            raise RuntimeError("Database not connected")
+
+        source = f"({self.config.query})" if self.config.query else self.config.target_table
+        sql = f"SELECT {self.config.clob_column} FROM {source} WHERE 1=0"
+        with self.conn.cursor() as cursor:
+            cursor.execute(sql)
+            return cursor.description[0][1]
 
     def commit(self):
         """Commits the current transaction."""
