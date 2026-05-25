@@ -34,45 +34,69 @@ class OracleIntegrationTest {
 
     @BeforeAll
     static void initDb() throws Exception {
-        // First try to use the existing database if it's running (e.g. in CI)
-        String ciJdbcUrl = "jdbc:oracle:thin:@127.0.0.1:1521/FREEPDB1";
-        try (Connection conn = DriverManager.getConnection(ciJdbcUrl, "system", "password")) {
-            System.out.println("Using existing database at " + ciJdbcUrl);
-            configStaticDb(ciJdbcUrl, "system", "password");
-            initializeSchema(conn);
-            return;
-        } catch (SQLException e) {
-            System.out.println("Existing database not found, starting Testcontainers: " + e.getMessage());
+        // Ensure driver is loaded
+        try {
+            Class.forName("oracle.jdbc.OracleDriver");
+        } catch (ClassNotFoundException e) {
+            System.err.println("Oracle JDBC Driver not found: " + e.getMessage());
         }
 
+        // First try to use the existing database if it's running (e.g. in CI)
+        String[] possibleUrls = {
+            "jdbc:oracle:thin:@127.0.0.1:1521/FREEPDB1",
+            "jdbc:oracle:thin:@localhost:1521/FREEPDB1"
+        };
+
+        for (String url : possibleUrls) {
+            try (Connection conn = DriverManager.getConnection(url, "system", "password")) {
+                System.out.println("Using existing database at " + url);
+                configStaticDb(url, "system", "password");
+                initializeSchema(conn);
+                return;
+            } catch (SQLException e) {
+                System.out.println("Attempt to connect to existing DB at " + url + " failed: " + e.getMessage());
+            }
+        }
+
+        System.out.println("Existing database not found on standard ports, starting Testcontainers...");
         try {
             oracle = new OracleContainer(
                     DockerImageName.parse("container-registry.oracle.com/database/free:latest")
                             .asCompatibleSubstituteFor("gvenzl/oracle-xe"))
+                    .withDatabaseName("FREEPDB1")
                     .withPassword("password");
             oracle.start();
         } catch (Exception e) {
+            System.err.println("Testcontainers failed to start: " + e.getMessage());
             Assumptions.abort("Docker is not available or failed to start: " + e.getMessage());
         }
 
         // Retry logic for container database connection
-        int maxRetries = 10;
+        int maxRetries = 15;
         int retryDelayMs = 10000;
         SQLException lastEx = null;
 
+        String jdbcUrl = oracle.getJdbcUrl();
+        System.out.println("Testcontainers started. URL: " + jdbcUrl);
+
         for (int i = 0; i < maxRetries; i++) {
-            try (Connection conn = DriverManager.getConnection(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword())) {
-                configStaticDb(oracle.getJdbcUrl(), oracle.getUsername(), oracle.getPassword());
+            try (Connection conn = DriverManager.getConnection(jdbcUrl, oracle.getUsername(), oracle.getPassword())) {
+                System.out.println("Connected to Testcontainers DB successfully.");
+                configStaticDb(jdbcUrl, oracle.getUsername(), oracle.getPassword());
                 initializeSchema(conn);
                 return;
             } catch (SQLException e) {
                 lastEx = e;
                 // ORA-12514: listener does not currently know of service requested in connect descriptor
                 // ORA-17002: I/O error: connection refused
-                if (e.getErrorCode() == 12514 || e.getErrorCode() == 17002 || e.getMessage().contains("ORA-12514")) {
-                    System.out.println("Database not ready yet, retrying... (" + (i + 1) + "/" + maxRetries + ")");
+                // ORA-12505: TNS:listener does not currently know of SID given in connect descriptor
+                if (e.getErrorCode() == 12514 || e.getErrorCode() == 17002 || e.getErrorCode() == 12505
+                    || e.getMessage().contains("ORA-12514") || e.getMessage().contains("ORA-12505")) {
+                    System.out.println("Database at " + jdbcUrl + " not ready yet (Error " + e.getErrorCode()
+                        + "), retrying... (" + (i + 1) + "/" + maxRetries + ")");
                     Thread.sleep(retryDelayMs);
                 } else {
+                    System.err.println("Permanent error connecting to Testcontainers DB: " + e.getMessage());
                     throw e;
                 }
             }
