@@ -23,7 +23,7 @@ This roadmap outlines the plan to port the CLOB Download and Upload Tool from Py
 - ✅ Port `OracleConnector` and `CLOBProcessor` using JDBC.
 - ✅ Implement `Orchestrator` and Picocli-based CLI.
 - ✅ Implement comprehensive JUnit 5 tests and Testcontainers integration.
-- ⏳ Implement Java code style enforcement using Checkstyle (Google rules from `alpheusafpparser`).
+- ✅ Implement Java code style enforcement using Checkstyle (Google rules from `alpheusafpparser`).
 - ✅ Configure GraalVM Native Image build for standalone distribution.
 - ✅ Implement Dual ID Filtering Strategy (IN clause vs. GTT Join).
 
@@ -98,8 +98,8 @@ Providing users with more control over the data retrieval process.
 ### Phase 9: Performance & Robustness
 Improving the tool's efficiency and reliability based on architectural audit recommendations.
 
-- [ ] **Optimize GTT lifecycle management**:
-    - [ ] Use generic column names in GTT for better reusability
-    - [ ] Implement explicit existence check for GTT
-- [ ] Implement batch updates for upload mode using `addBatch()` / `executeBatch()`
+- [x] **Optimize GTT lifecycle management**:
+    - [x] Use generic column names in GTT for better reusability
+    - [x] Implement explicit existence check for GTT
+- [x] Implement batch updates for upload mode using `addBatch()` / `executeBatch()`
 - [ ] Implement asynchronous processing using Virtual Threads (Project Loom) in the Orchestrator
