@@ -48,21 +48,22 @@ public class Orchestrator {
    */
   public void downloadMode(Path csvPath, Path outputDir, DBConfig dbConfig)
       throws IOException, SQLException {
-    downloadMode(csvPath, outputDir, dbConfig, null);
+    downloadMode(csvPath, outputDir, dbConfig, null, 1000);
   }
 
   /**
    * Orchestrates UC-1: Download CLOBs with progress reporting.
    *
-   * @param csvPath   Path to the CSV file containing IDs.
-   * @param outputDir Directory where CLOBs will be saved.
-   * @param dbConfig  Database configuration.
-   * @param reporter  Progress reporter (optional).
+   * @param csvPath      Path to the CSV file containing IDs.
+   * @param outputDir     Directory where CLOBs will be saved.
+   * @param dbConfig     Database configuration.
+   * @param reporter     Progress reporter (optional).
+   * @param gttThreshold Threshold for using GTT strategy.
    * @throws IOException  If an I/O error occurs.
    * @throws SQLException If a database access error occurs.
    */
   public void downloadMode(Path csvPath, Path outputDir, DBConfig dbConfig,
-      ProgressReporter reporter)
+      ProgressReporter reporter, int gttThreshold)
       throws IOException, SQLException {
     List<String> ids = inputManager.loadIds(csvPath);
     if (ids.isEmpty()) {
@@ -75,7 +76,7 @@ public class Orchestrator {
       fsManager.ensureDirectory(outputDir);
 
       Stream<LobRecord> clobStream;
-      if (ids.size() < 1000) {
+      if (ids.size() < gttThreshold) {
         logger.info("Using IN clause strategy for {} IDs", ids.size());
         if (reporter != null) {
           reporter.setTotal(ids.size());
@@ -152,11 +153,12 @@ public class Orchestrator {
     }
 
     dbConnector.connect(dbConfig);
+    List<LobUpdate> currentBatch = new ArrayList<>();
     try {
       int columnType = dbConnector.getLobColumnType();
       boolean isBinary = (columnType == Types.BLOB);
       int uploadAttempted = 0;
-      int uploadSuccess = 0;
+      int uploadSuccessCount = 0;
 
       if (idAsRegex) {
         List<Pattern> compiledPatterns = new ArrayList<>();
@@ -178,14 +180,14 @@ public class Orchestrator {
                 String dbId = matcher.groupCount() > 0 ? matcher.group(1) : matcher.group(0);
                 logger.info("Matched file {} with pattern {} -> ID: {}",
                     filename, pattern.pattern(), dbId);
-                if (updateSingleLob(dbId, filePath, isBinary)) {
-                  uploadSuccess++;
-                } else {
-                  logger.warn("No rows updated for ID {}. Record may not exist.", dbId);
-                }
+
+                currentBatch.add(prepareUpdate(dbId, filePath, isBinary));
                 uploadAttempted++;
-                if (uploadAttempted % batchSize == 0) {
+
+                if (currentBatch.size() >= batchSize) {
+                  uploadSuccessCount += executeAndCloseBatch(new ArrayList<>(currentBatch));
                   dbConnector.commit();
+                  currentBatch.clear();
                 }
                 break;
               }
@@ -209,40 +211,73 @@ public class Orchestrator {
 
           if (Files.exists(filePath)) {
             logger.info("Uploading file {} for ID {}", filePath.getFileName(), idVal);
-            if (updateSingleLob(idVal, filePath, isBinary)) {
-              uploadSuccess++;
-            } else {
-              logger.warn("No rows updated for ID {}. Record may not exist.", idVal);
-            }
+            currentBatch.add(prepareUpdate(idVal, filePath, isBinary));
             uploadAttempted++;
-            if (uploadAttempted % batchSize == 0) {
+
+            if (currentBatch.size() >= batchSize) {
+              uploadSuccessCount += executeAndCloseBatch(currentBatch);
               dbConnector.commit();
+              currentBatch.clear();
             }
           } else {
             logger.warn("File not found for ID {}: {}", idVal, filePath);
           }
         }
       }
-      dbConnector.commit();
+
+      if (!currentBatch.isEmpty()) {
+        uploadSuccessCount += executeAndCloseBatch(new ArrayList<>(currentBatch));
+        dbConnector.commit();
+        currentBatch.clear();
+      }
+
       logger.info("Total files attempted: {}, Successfully updated: {}",
-          uploadAttempted, uploadSuccess);
+          uploadAttempted, uploadSuccessCount);
     } finally {
+      for (LobUpdate update : currentBatch) {
+        try {
+          update.stream().close();
+        } catch (Exception e) {
+          logger.error("Failed to close remaining stream for ID {}: {}",
+              update.id(), e.getMessage());
+        }
+      }
       dbConnector.close();
     }
   }
 
-  private boolean updateSingleLob(String idVal, Path filePath, boolean isBinary)
-      throws IOException, SQLException {
-    int affected;
+  private LobUpdate prepareUpdate(String idVal, Path filePath, boolean isBinary)
+      throws IOException {
     if (isBinary) {
-      try (InputStream is = clobProcessor.openFileAsStream(filePath)) {
-        affected = dbConnector.updateLob(idVal, is);
-      }
+      InputStream is = clobProcessor.openFileAsStream(filePath);
+      return new LobUpdate(idVal, is, is);
     } else {
-      try (Reader reader = clobProcessor.openFile(filePath)) {
-        affected = dbConnector.updateLob(idVal, reader);
+      Reader reader = clobProcessor.openFile(filePath);
+      return new LobUpdate(idVal, reader, reader);
+    }
+  }
+
+  private int executeAndCloseBatch(List<LobUpdate> batch) throws SQLException {
+    try {
+      int[] results = dbConnector.updateLobBatch(batch);
+      int successCount = 0;
+      for (int i = 0; i < results.length; i++) {
+        int r = results[i];
+        if (r > 0) {
+          successCount++;
+        } else if (r == 0) {
+          logger.warn("No rows updated for ID {}. Record may not exist.", batch.get(i).id());
+        }
+      }
+      return successCount;
+    } finally {
+      for (LobUpdate update : batch) {
+        try {
+          update.stream().close();
+        } catch (Exception e) {
+          logger.error("Failed to close stream for ID {}: {}", update.id(), e.getMessage());
+        }
       }
     }
-    return affected > 0;
   }
 }
