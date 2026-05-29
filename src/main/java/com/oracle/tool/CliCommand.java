@@ -99,6 +99,10 @@ public class CliCommand implements Runnable {
         description = "Name of the Global Temporary Table.")
     private String gttName;
 
+    @Option(names = "--gtt-threshold", defaultValue = "1000",
+        description = "Threshold for using GTT strategy.")
+    private int gttThreshold;
+
     @Override
     public Integer call() throws Exception {
       if (parent != null && parent.debug) {
@@ -116,8 +120,10 @@ public class CliCommand implements Runnable {
             idColumn, clobColumn, gttName, query, filenameColumn);
         Orchestrator orchestrator = createOrchestrator();
 
-        logger.info("Starting download mode. CSV: {}, Output: {}", csvPath, outputDir);
-        orchestrator.downloadMode(csvPath, outputDir, dbConfig, new ConsoleProgressReporter());
+        logger.info("Starting download mode. CSV: {}, Output: {}, GTT Threshold: {}",
+            csvPath, outputDir, gttThreshold);
+        orchestrator.downloadMode(csvPath, outputDir, dbConfig,
+            new ConsoleProgressReporter(), gttThreshold);
         logger.info("Download completed successfully.");
         return 0;
       } catch (Exception ex) {

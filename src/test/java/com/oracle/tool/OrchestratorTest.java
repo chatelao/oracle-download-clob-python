@@ -64,7 +64,7 @@ class OrchestratorTest {
         when(dbConnector.fetchClobsIn(ids)).thenReturn(clobStream);
 
         ProgressReporter reporter = mock(ProgressReporter.class);
-        orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig, reporter);
+        orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig, reporter, 1000);
 
         verify(reporter).setTotal(2);
         verify(reporter).update(1);
@@ -85,7 +85,7 @@ class OrchestratorTest {
         when(dbConnector.fetchClobsJoin()).thenReturn(clobStream);
 
         ProgressReporter reporter = mock(ProgressReporter.class);
-        orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig, reporter);
+        orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig, reporter, 1000);
 
         verify(reporter).setTotal(1001);
         verify(reporter).update(1);
@@ -95,6 +95,23 @@ class OrchestratorTest {
         verify(dbConnector, never()).fetchClobsIn(any());
         verify(clobProcessor).streamToFile(eq(clob1), any());
         verify(dbConnector).close();
+    }
+
+    @Test
+    void downloadMode_CustomThreshold_UsesGttJoin() throws IOException, SQLException {
+        List<String> ids = List.of("1", "2", "3");
+        when(inputManager.loadIds(any())).thenReturn(ids);
+        Clob clob1 = mock(Clob.class);
+        Stream<LobRecord> clobStream = Stream.of(new LobRecord("1", clob1));
+        when(dbConnector.fetchClobsJoin()).thenReturn(clobStream);
+
+        ProgressReporter reporter = mock(ProgressReporter.class);
+        // Set threshold to 2, so 3 IDs should trigger GTT
+        orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig, reporter, 2);
+
+        verify(dbConnector).createGtt(ids);
+        verify(dbConnector).fetchClobsJoin();
+        verify(dbConnector, never()).fetchClobsIn(any());
     }
 
     @Test
@@ -113,14 +130,16 @@ class OrchestratorTest {
         Reader reader = mock(Reader.class);
         when(clobProcessor.openFile(any())).thenReturn(reader);
         when(dbConnector.getLobColumnType()).thenReturn(Types.CLOB);
-        when(dbConnector.updateLob(eq("1"), any())).thenReturn(1);
+        when(dbConnector.updateLobBatch(anyList())).thenReturn(new int[]{1});
 
         Files.createFile(tempDir.resolve("1.txt"));
 
         orchestrator.uploadMode(Path.of("test.csv"), tempDir, dbConfig);
 
         verify(dbConnector).connect(dbConfig);
-        verify(dbConnector).updateLob(eq("1"), eq(reader));
+        verify(dbConnector).updateLobBatch(argThat(batch ->
+            batch.size() == 1 && batch.get(0).id().equals("1")
+        ));
         verify(dbConnector).commit();
         verify(dbConnector).close();
     }
