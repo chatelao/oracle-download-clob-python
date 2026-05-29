@@ -152,6 +152,8 @@ public class Orchestrator {
     }
 
     dbConnector.connect(dbConfig);
+    List<String> batchIds = new ArrayList<>();
+    List<Object> batchContents = new ArrayList<>();
     try {
       int columnType = dbConnector.getLobColumnType();
       boolean isBinary = (columnType == Types.BLOB);
@@ -178,14 +180,14 @@ public class Orchestrator {
                 String dbId = matcher.groupCount() > 0 ? matcher.group(1) : matcher.group(0);
                 logger.info("Matched file {} with pattern {} -> ID: {}",
                     filename, pattern.pattern(), dbId);
-                if (updateSingleLob(dbId, filePath, isBinary)) {
-                  uploadSuccess++;
-                } else {
-                  logger.warn("No rows updated for ID {}. Record may not exist.", dbId);
-                }
+
+                batchIds.add(dbId);
+                batchContents.add(isBinary ? clobProcessor.openFileAsStream(filePath)
+                    : clobProcessor.openFile(filePath));
                 uploadAttempted++;
-                if (uploadAttempted % batchSize == 0) {
-                  dbConnector.commit();
+
+                if (batchIds.size() >= batchSize) {
+                  uploadSuccess += processUploadBatch(batchIds, batchContents);
                 }
                 break;
               }
@@ -209,40 +211,62 @@ public class Orchestrator {
 
           if (Files.exists(filePath)) {
             logger.info("Uploading file {} for ID {}", filePath.getFileName(), idVal);
-            if (updateSingleLob(idVal, filePath, isBinary)) {
-              uploadSuccess++;
-            } else {
-              logger.warn("No rows updated for ID {}. Record may not exist.", idVal);
-            }
+            batchIds.add(idVal);
+            batchContents.add(isBinary ? clobProcessor.openFileAsStream(filePath)
+                : clobProcessor.openFile(filePath));
             uploadAttempted++;
-            if (uploadAttempted % batchSize == 0) {
-              dbConnector.commit();
+
+            if (batchIds.size() >= batchSize) {
+              uploadSuccess += processUploadBatch(batchIds, batchContents);
             }
           } else {
             logger.warn("File not found for ID {}: {}", idVal, filePath);
           }
         }
       }
+
+      if (!batchIds.isEmpty()) {
+        uploadSuccess += processUploadBatch(batchIds, batchContents);
+      }
+
       dbConnector.commit();
       logger.info("Total files attempted: {}, Successfully updated: {}",
           uploadAttempted, uploadSuccess);
     } finally {
+      closeBatchResources(batchContents);
       dbConnector.close();
     }
   }
 
-  private boolean updateSingleLob(String idVal, Path filePath, boolean isBinary)
-      throws IOException, SQLException {
-    int affected;
-    if (isBinary) {
-      try (InputStream is = clobProcessor.openFileAsStream(filePath)) {
-        affected = dbConnector.updateLob(idVal, is);
+  private int processUploadBatch(List<String> ids, List<Object> contents) throws SQLException {
+    int success = 0;
+    try {
+      int[] results = dbConnector.updateLobsBatch(ids, contents);
+      for (int i = 0; i < results.length; i++) {
+        if (results[i] != java.sql.Statement.EXECUTE_FAILED && results[i] != 0) {
+          success++;
+        } else {
+          logger.warn("No rows updated for ID {}. Record may not exist.", ids.get(i));
+        }
       }
-    } else {
-      try (Reader reader = clobProcessor.openFile(filePath)) {
-        affected = dbConnector.updateLob(idVal, reader);
+      dbConnector.commit();
+    } finally {
+      closeBatchResources(contents);
+      ids.clear();
+      contents.clear();
+    }
+    return success;
+  }
+
+  private void closeBatchResources(List<Object> contents) {
+    for (Object content : contents) {
+      if (content instanceof AutoCloseable ac) {
+        try {
+          ac.close();
+        } catch (Exception e) {
+          logger.error("Failed to close resource: {}", e.getMessage());
+        }
       }
     }
-    return affected > 0;
   }
 }

@@ -44,6 +44,45 @@ public class OracleConnector implements AutoCloseable {
   }
 
   /**
+   * Updates multiple records with new LOB data in a single batch.
+   *
+   * @param ids      List of record IDs.
+   * @param contents List of LOB contents (Reader, InputStream, or Object).
+   * @return Array of update counts.
+   * @throws SQLException If a database access error occurs.
+   */
+  public int[] updateLobsBatch(List<String> ids, List<Object> contents) throws SQLException {
+    if (conn == null) {
+      throw new SQLException("Database not connected");
+    }
+    if (ids.size() != contents.size()) {
+      throw new IllegalArgumentException("IDs and contents lists must have the same size");
+    }
+
+    String sql = String.format(
+        "UPDATE %s SET %s = ? WHERE %s = ?",
+        config.targetTable(), config.clobColumn(), config.idColumn()
+    );
+
+    try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+      for (int i = 0; i < ids.size(); i++) {
+        Object content = contents.get(i);
+        String id = ids.get(i);
+        if (content instanceof Reader reader) {
+          pstmt.setCharacterStream(1, reader);
+        } else if (content instanceof InputStream is) {
+          pstmt.setBinaryStream(1, is);
+        } else {
+          pstmt.setObject(1, content);
+        }
+        pstmt.setString(2, id);
+        pstmt.addBatch();
+      }
+      return pstmt.executeBatch();
+    }
+  }
+
+  /**
    * Closes the database connection.
    */
   @Override
