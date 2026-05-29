@@ -168,6 +168,8 @@ public class Orchestrator {
           }
         }
 
+        List<String> batchIds = new ArrayList<>();
+        List<Path> batchPaths = new ArrayList<>();
         try (Stream<Path> paths = Files.list(inputDir)) {
           Iterable<Path> filePaths = paths.filter(Files::isRegularFile)::iterator;
           for (Path filePath : filePaths) {
@@ -178,21 +180,27 @@ public class Orchestrator {
                 String dbId = matcher.groupCount() > 0 ? matcher.group(1) : matcher.group(0);
                 logger.info("Matched file {} with pattern {} -> ID: {}",
                     filename, pattern.pattern(), dbId);
-                if (updateSingleLob(dbId, filePath, isBinary)) {
-                  uploadSuccess++;
-                } else {
-                  logger.warn("No rows updated for ID {}. Record may not exist.", dbId);
-                }
+                batchIds.add(dbId);
+                batchPaths.add(filePath);
                 uploadAttempted++;
-                if (uploadAttempted % batchSize == 0) {
+
+                if (batchIds.size() >= batchSize) {
+                  uploadSuccess += processUpdateBatch(batchIds, batchPaths, isBinary);
                   dbConnector.commit();
+                  batchIds.clear();
+                  batchPaths.clear();
                 }
                 break;
               }
             }
           }
         }
+        if (!batchIds.isEmpty()) {
+          uploadSuccess += processUpdateBatch(batchIds, batchPaths, isBinary);
+        }
       } else {
+        List<String> batchIds = new ArrayList<>();
+        List<Path> batchPaths = new ArrayList<>();
         for (String idVal : patternsOrIds) {
           Path filePath = inputDir.resolve(idVal + ".txt");
           if (!Files.exists(filePath)) {
@@ -209,18 +217,22 @@ public class Orchestrator {
 
           if (Files.exists(filePath)) {
             logger.info("Uploading file {} for ID {}", filePath.getFileName(), idVal);
-            if (updateSingleLob(idVal, filePath, isBinary)) {
-              uploadSuccess++;
-            } else {
-              logger.warn("No rows updated for ID {}. Record may not exist.", idVal);
-            }
+            batchIds.add(idVal);
+            batchPaths.add(filePath);
             uploadAttempted++;
-            if (uploadAttempted % batchSize == 0) {
+
+            if (batchIds.size() >= batchSize) {
+              uploadSuccess += processUpdateBatch(batchIds, batchPaths, isBinary);
               dbConnector.commit();
+              batchIds.clear();
+              batchPaths.clear();
             }
           } else {
             logger.warn("File not found for ID {}: {}", idVal, filePath);
           }
+        }
+        if (!batchIds.isEmpty()) {
+          uploadSuccess += processUpdateBatch(batchIds, batchPaths, isBinary);
         }
       }
       dbConnector.commit();
@@ -244,5 +256,30 @@ public class Orchestrator {
       }
     }
     return affected > 0;
+  }
+
+  private int processUpdateBatch(List<String> ids, List<Path> paths, boolean isBinary)
+      throws IOException, SQLException {
+    List<Object> contents = new ArrayList<>();
+    try {
+      for (Path path : paths) {
+        if (isBinary) {
+          contents.add(clobProcessor.openFileAsStream(path));
+        } else {
+          contents.add(clobProcessor.openFile(path));
+        }
+      }
+      return dbConnector.updateLobBatch(ids, contents);
+    } finally {
+      for (Object content : contents) {
+        try {
+          if (content instanceof AutoCloseable ac) {
+            ac.close();
+          }
+        } catch (Exception e) {
+          logger.warn("Failed to close LOB stream: {}", e.getMessage());
+        }
+      }
+    }
   }
 }
