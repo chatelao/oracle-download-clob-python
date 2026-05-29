@@ -61,22 +61,27 @@ class OracleConnectorTest {
 
     @Test
     void createGtt_Success() throws SQLException {
-        // We need to set the connection manually since it's private and we don't want to mock static everywhere
-        // Or we just use the connect method with mockStatic
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
             driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
                     .thenReturn(connection);
             connector.connect(config);
 
             when(connection.createStatement()).thenReturn(statement);
-            when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
+            when(connection.prepareStatement(contains("user_tables"))).thenReturn(preparedStatement);
+            when(preparedStatement.executeQuery()).thenReturn(resultSet);
+            when(resultSet.next()).thenReturn(true);
+            when(resultSet.getInt(1)).thenReturn(0); // Not exists
+
+            PreparedStatement insertStmt = mock(PreparedStatement.class);
+            when(connection.prepareStatement(contains("INSERT INTO"))).thenReturn(insertStmt);
 
             connector.createGtt(List.of("1", "2"));
 
             verify(statement).execute(contains("CREATE GLOBAL TEMPORARY TABLE"));
+            verify(statement).execute(contains("(ID_VAL VARCHAR2(255))"));
             verify(statement).execute(contains("DELETE FROM"));
-            verify(preparedStatement, times(2)).setString(eq(1), anyString());
-            verify(preparedStatement).executeBatch();
+            verify(insertStmt, times(2)).setString(eq(1), anyString());
+            verify(insertStmt).executeBatch();
         }
     }
 
@@ -88,15 +93,19 @@ class OracleConnectorTest {
             connector.connect(config);
 
             when(connection.createStatement()).thenReturn(statement);
-            when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
+            when(connection.prepareStatement(contains("user_tables"))).thenReturn(preparedStatement);
+            when(preparedStatement.executeQuery()).thenReturn(resultSet);
+            when(resultSet.next()).thenReturn(true);
+            when(resultSet.getInt(1)).thenReturn(1); // Already exists
 
-            // Mock ORA-00955
-            doThrow(new SQLException("Table already exists", "42000", 955)).when(statement).execute(contains("CREATE"));
+            PreparedStatement insertStmt = mock(PreparedStatement.class);
+            when(connection.prepareStatement(contains("INSERT INTO"))).thenReturn(insertStmt);
 
             connector.createGtt(List.of("1"));
 
+            verify(statement, never()).execute(contains("CREATE"));
             verify(statement).execute(contains("DELETE FROM"));
-            verify(preparedStatement).executeBatch();
+            verify(insertStmt).executeBatch();
         }
     }
 
@@ -120,6 +129,7 @@ class OracleConnectorTest {
 
             assertEquals(1, results.size());
             assertEquals("1", results.get(0).id());
+            verify(statement).executeQuery(contains("JOIN " + config.gttName() + " g ON t.id = g.ID_VAL"));
         }
     }
 

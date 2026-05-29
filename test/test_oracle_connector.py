@@ -44,18 +44,21 @@ def test_create_gtt(connector, db_config):
         mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
         mock_connect.return_value = mock_conn
 
+        # Mock existence check returning 0 (does not exist)
+        mock_cursor.fetchone.return_value = [0]
+
         connector.connect(db_config)
         ids = ["1", "2", "3"]
         connector.create_gtt(ids)
 
-        # Verify CREATE table was called (at least once)
+        # Verify CREATE table was called
         create_call = any("CREATE GLOBAL TEMPORARY TABLE" in str(call) for call in mock_cursor.execute.call_args_list)
         assert create_call
 
         mock_cursor.execute.assert_called_with(f"DELETE FROM {db_config.gtt_name}")
         mock_cursor.executemany.assert_called_once()
         args, _ = mock_cursor.executemany.call_args
-        assert args[0] == f"INSERT INTO {db_config.gtt_name} ({db_config.id_column}) VALUES (:1)"
+        assert args[0] == f"INSERT INTO {db_config.gtt_name} (ID_VAL) VALUES (:1)"
         assert args[1] == [("1",), ("2",), ("3",)]
 
 def test_create_gtt_already_exists(connector, db_config):
@@ -65,13 +68,15 @@ def test_create_gtt_already_exists(connector, db_config):
         mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
         mock_connect.return_value = mock_conn
 
-        import oracledb
-        error_obj = MagicMock()
-        error_obj.code = 955
-        mock_cursor.execute.side_effect = [oracledb.DatabaseError(error_obj), None, None]
+        # Mock existence check returning 1 (exists)
+        mock_cursor.fetchone.return_value = [1]
 
         connector.connect(db_config)
         connector.create_gtt(["1"])
+
+        # Verify CREATE table was NOT called
+        create_call = any("CREATE GLOBAL TEMPORARY TABLE" in str(call) for call in mock_cursor.execute.call_args_list)
+        assert not create_call
 
         mock_cursor.execute.assert_called_with(f"DELETE FROM {db_config.gtt_name}")
 
