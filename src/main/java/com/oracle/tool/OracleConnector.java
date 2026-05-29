@@ -280,6 +280,54 @@ public class OracleConnector implements AutoCloseable {
   }
 
   /**
+   * Updates multiple records with new LOB data in a single batch.
+   *
+   * @param ids      List of record IDs.
+   * @param contents List of Reader or InputStream providing LOB content.
+   * @return Total number of rows affected.
+   * @throws SQLException If a database access error occurs.
+   */
+  public int updateLobBatch(List<String> ids, List<Object> contents) throws SQLException {
+    if (conn == null) {
+      throw new SQLException("Database not connected");
+    }
+    if (ids.size() != contents.size()) {
+      throw new IllegalArgumentException("IDs and contents lists must have the same size");
+    }
+
+    String sql = String.format(
+        "UPDATE %s SET %s = ? WHERE %s = ?",
+        config.targetTable(), config.clobColumn(), config.idColumn()
+    );
+
+    try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+      for (int i = 0; i < ids.size(); i++) {
+        String id = ids.get(i);
+        Object content = contents.get(i);
+        if (content instanceof Reader reader) {
+          pstmt.setCharacterStream(1, reader);
+        } else if (content instanceof InputStream is) {
+          pstmt.setBinaryStream(1, is);
+        } else {
+          pstmt.setObject(1, content);
+        }
+        pstmt.setString(2, id);
+        pstmt.addBatch();
+      }
+      int[] results = pstmt.executeBatch();
+      int totalAffected = 0;
+      for (int res : results) {
+        if (res > 0) {
+          totalAffected += res;
+        } else if (res == Statement.SUCCESS_NO_INFO) {
+          totalAffected++; // Assume at least one if successful but count unknown
+        }
+      }
+      return totalAffected;
+    }
+  }
+
+  /**
    * Determines the SQL type of the LOB column.
    *
    * @return SQL type from java.sql.Types.

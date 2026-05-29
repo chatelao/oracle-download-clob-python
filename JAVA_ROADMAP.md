@@ -98,8 +98,11 @@ Providing users with more control over the data retrieval process.
 ### Phase 9: Performance & Robustness
 Improving the tool's efficiency and reliability based on architectural audit recommendations.
 
-- [ ] **Optimize GTT lifecycle management**:
-    - [ ] Use generic column names in GTT for better reusability
-    - [ ] Implement explicit existence check for GTT
-- [ ] Implement batch updates for upload mode using `addBatch()` / `executeBatch()`
-- [ ] Implement asynchronous processing using Virtual Threads (Project Loom) in the Orchestrator
+- [x] **Optimize GTT lifecycle management**: ✅ 2026-05-29
+    - [x] Use generic column names in GTT for better reusability ✅ 2026-05-29
+    - [x] Implement explicit existence check for GTT ✅ 2026-05-29
+- [x] Implement batch updates for upload mode using `addBatch()` / `executeBatch()` ✅ 2026-05-29
+- [ ] **Implement asynchronous processing using Virtual Threads (Project Loom)**:
+    - [ ] Research thread-safety of parallel LOB streaming from a single JDBC connection
+    - [ ] Implement JDBC connection pooling (e.g., HikariCP) to support parallel execution
+    - [ ] Parallelize LOB processing in Orchestrator using Virtual Threads
