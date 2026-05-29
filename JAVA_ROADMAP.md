@@ -14,7 +14,7 @@ This roadmap outlines the plan to port the CLOB Download and Upload Tool from Py
 | Phase 6 | Advanced Filtering & Optimization | ✅ |
 | Phase 7 | Configuration Management | ✅ |
 | Phase 8 | Advanced Querying | ✅ |
-| Phase 9 | Performance & Robustness | ⏳ |
+| Phase 9 | Performance & Robustness | 🚧 |
 
 ## Goals
 
@@ -98,6 +98,8 @@ Providing users with more control over the data retrieval process.
 ### Phase 9: Performance & Robustness
 Improving the tool's efficiency and reliability based on architectural audit recommendations.
 
-- [ ] Optimize GTT lifecycle management (check for existence vs. catch exception)
+- [ ] **Optimize GTT lifecycle management**:
+    - [ ] Use generic column names in GTT for better reusability
+    - [ ] Implement explicit existence check for GTT
 - [ ] Implement batch updates for upload mode using `addBatch()` / `executeBatch()`
 - [ ] Implement asynchronous processing using Virtual Threads (Project Loom) in the Orchestrator

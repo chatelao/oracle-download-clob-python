@@ -45,24 +45,23 @@ class OracleConnector:
             raise RuntimeError("Database not connected")
 
         with self.conn.cursor() as cursor:
-            # Attempt to create GTT if it doesn't exist
-            try:
+            # Check if GTT exists
+            cursor.execute("SELECT count(*) FROM user_tables WHERE table_name = :1", (self.config.gtt_name.upper(),))
+            exists = cursor.fetchone()[0] > 0
+
+            if not exists:
                 cursor.execute(f"""
                     CREATE GLOBAL TEMPORARY TABLE {self.config.gtt_name} (
-                        {self.config.id_column} VARCHAR2(255)
+                        ID_VAL VARCHAR2(255)
                     ) ON COMMIT PRESERVE ROWS
                 """)
-            except oracledb.DatabaseError as e:
-                error_obj, = e.args
-                if error_obj.code != 955: # ORA-00955: name is already used by an existing object
-                    raise
 
             # Clear GTT for the current session
             cursor.execute(f"DELETE FROM {self.config.gtt_name}")
 
             # Bulk insert IDs
             data = [(id_val,) for id_val in ids]
-            cursor.executemany(f"INSERT INTO {self.config.gtt_name} ({self.config.id_column}) VALUES (:1)", data)
+            cursor.executemany(f"INSERT INTO {self.config.gtt_name} (ID_VAL) VALUES (:1)", data)
 
     def fetch_clobs_join(self) -> Iterator[Tuple[str, Any, Optional[str]]]:
         """Executes the JOIN query and yields (ID, LOB, Filename)."""
@@ -78,7 +77,7 @@ class OracleConnector:
         sql = f"""
             SELECT {', '.join(columns)}
             FROM {source} t
-            JOIN {self.config.gtt_name} g ON t.{self.config.id_column} = g.{self.config.id_column}
+            JOIN {self.config.gtt_name} g ON t.{self.config.id_column} = g.ID_VAL
         """
 
         with self.conn.cursor() as cursor:

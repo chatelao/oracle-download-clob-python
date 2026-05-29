@@ -66,19 +66,25 @@ public class OracleConnector implements AutoCloseable {
     }
 
     try (Statement stmt = conn.createStatement()) {
-      // Attempt to create GTT if it doesn't exist
-      try {
+      // Check if GTT exists
+      boolean exists = false;
+      String checkSql = "SELECT count(*) FROM user_tables WHERE table_name = ?";
+      try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+        checkStmt.setString(1, config.gttName().toUpperCase());
+        try (ResultSet rs = checkStmt.executeQuery()) {
+          if (rs.next()) {
+            exists = rs.getInt(1) > 0;
+          }
+        }
+      }
+
+      if (!exists) {
         String createSql = String.format(
-            "CREATE GLOBAL TEMPORARY TABLE %s (%s VARCHAR2(255)) "
+            "CREATE GLOBAL TEMPORARY TABLE %s (ID_VAL VARCHAR2(255)) "
                 + "ON COMMIT PRESERVE ROWS",
-            config.gttName(), config.idColumn()
+            config.gttName()
         );
         stmt.execute(createSql);
-      } catch (SQLException ex) {
-        if (ex.getErrorCode() != 955) {
-          // ORA-00955: name is already used by an existing object
-          throw ex;
-        }
       }
 
       // Clear GTT for the current session
@@ -86,8 +92,8 @@ public class OracleConnector implements AutoCloseable {
     }
 
     // Bulk insert IDs
-    String insertSql = String.format("INSERT INTO %s (%s) VALUES (?)",
-        config.gttName(), config.idColumn());
+    String insertSql = String.format("INSERT INTO %s (ID_VAL) VALUES (?)",
+        config.gttName());
     try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
       for (String id : ids) {
         pstmt.setString(1, id);
@@ -117,8 +123,8 @@ public class OracleConnector implements AutoCloseable {
     }
 
     String sql = String.format(
-        "SELECT %s FROM %s t JOIN %s g ON t.%s = g.%s",
-        columns, source, config.gttName(), config.idColumn(), config.idColumn()
+        "SELECT %s FROM %s t JOIN %s g ON t.%s = g.ID_VAL",
+        columns, source, config.gttName(), config.idColumn()
     );
 
     Statement stmt = conn.createStatement();
