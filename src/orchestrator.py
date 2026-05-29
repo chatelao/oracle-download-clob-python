@@ -81,21 +81,29 @@ class Orchestrator:
 
         import oracledb
         self.db_connector.connect(db_config)
+        upload_attempted = 0
+        upload_success = 0
+        batch = []
+        file_handles = []
+
+        def _flush_batch():
+            nonlocal upload_success, batch, file_handles
+            if not batch:
+                return
+            try:
+                affected = self.db_connector.update_lobs_batch(batch)
+                upload_success += affected
+                self.db_connector.commit()
+            finally:
+                for fh in file_handles:
+                    fh.close()
+                batch = []
+                file_handles = []
+
         try:
             col_type = self.db_connector.get_lob_column_type()
             is_binary = (col_type == oracledb.DB_TYPE_BLOB)
             mode = 'rb' if is_binary else 'r'
-
-            upload_attempted = 0
-            upload_success = 0
-
-            def _perform_update(db_id_val, f_obj):
-                nonlocal upload_success
-                affected = self.db_connector.update_lob(db_id_val, f_obj)
-                if affected > 0:
-                    upload_success += 1
-                else:
-                    logger.warning(f"No rows updated for ID {db_id_val}. Record may not exist.")
 
             if id_as_regex:
                 import re
@@ -115,11 +123,12 @@ class Orchestrator:
                         if match:
                             db_id = match.group(1) if match.groups() else match.group(0)
                             logger.info(f"Matched file {filename} with pattern {cp.pattern} -> ID: {db_id}")
-                            with self.clob_processor.open_file(file_path, mode=mode) as f:
-                                _perform_update(db_id, f)
+                            f = self.clob_processor.open_file(file_path, mode=mode)
+                            file_handles.append(f)
+                            batch.append((f, db_id))
                             upload_attempted += 1
-                            if upload_attempted % batch_size == 0:
-                                self.db_connector.commit()
+                            if len(batch) >= batch_size:
+                                _flush_batch()
                             break
             else:
                 # Try with .txt, then without extension if not found
@@ -136,15 +145,18 @@ class Orchestrator:
 
                     if file_path.exists():
                         logger.info(f"Uploading file {file_path.name} for ID {id_val}")
-                        with self.clob_processor.open_file(file_path, mode=mode) as f:
-                            _perform_update(id_val, f)
+                        f = self.clob_processor.open_file(file_path, mode=mode)
+                        file_handles.append(f)
+                        batch.append((f, id_val))
                         upload_attempted += 1
-                        if upload_attempted % batch_size == 0:
-                            self.db_connector.commit()
+                        if len(batch) >= batch_size:
+                            _flush_batch()
                     else:
                         logger.warning(f"File not found for ID {id_val} in {input_dir}")
 
-            self.db_connector.commit()
+            _flush_batch()
             logger.info(f"Total files attempted: {upload_attempted}, Successfully updated: {upload_success}")
         finally:
+            for fh in file_handles:
+                fh.close()
             self.db_connector.close()

@@ -171,6 +171,22 @@ def test_update_clob_no_auto_commit(connector, db_config):
         assert args[1] == ("new_content", "1")
         mock_conn.commit.assert_not_called()
 
+def test_update_lobs_batch(connector, db_config):
+    with patch('oracledb.connect') as mock_connect:
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+        mock_connect.return_value = mock_conn
+
+        connector.connect(db_config)
+        updates = [("content1", "1"), ("content2", "2")]
+        connector.update_lobs_batch(updates)
+
+        mock_cursor.executemany.assert_called_once()
+        args, _ = mock_cursor.executemany.call_args
+        assert "UPDATE" in args[0]
+        assert args[1] == updates
+
 def test_commit(connector, db_config):
     with patch('oracledb.connect') as mock_connect:
         mock_conn = MagicMock()

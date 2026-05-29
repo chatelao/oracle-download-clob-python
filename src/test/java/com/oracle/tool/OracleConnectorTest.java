@@ -216,6 +216,33 @@ class OracleConnectorTest {
     }
 
     @Test
+    void updateLobsBatch_Success() throws SQLException {
+        try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+                    .thenReturn(connection);
+            connector.connect(config);
+
+            when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
+
+            Reader reader1 = new StringReader("content1");
+            Reader reader2 = new StringReader("content2");
+            List<LobUpdate> updates = List.of(
+                    new LobUpdate("1", reader1),
+                    new LobUpdate("2", reader2)
+            );
+
+            connector.updateLobsBatch(updates);
+
+            verify(preparedStatement).setCharacterStream(eq(1), eq(reader1));
+            verify(preparedStatement).setString(eq(2), eq("1"));
+            verify(preparedStatement).setCharacterStream(eq(1), eq(reader2));
+            verify(preparedStatement).setString(eq(2), eq("2"));
+            verify(preparedStatement, times(2)).addBatch();
+            verify(preparedStatement).executeBatch();
+        }
+    }
+
+    @Test
     void close_ClosesConnection() throws SQLException {
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
             driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))

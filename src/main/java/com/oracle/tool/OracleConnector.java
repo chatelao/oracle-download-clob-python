@@ -280,6 +280,42 @@ public class OracleConnector implements AutoCloseable {
   }
 
   /**
+   * Updates multiple records with new LOB data using batching.
+   *
+   * @param updates List of LobUpdate objects.
+   * @return Array of update counts.
+   * @throws SQLException If a database access error occurs.
+   */
+  public int[] updateLobsBatch(List<LobUpdate> updates) throws SQLException {
+    if (conn == null) {
+      throw new SQLException("Database not connected");
+    }
+    if (updates.isEmpty()) {
+      return new int[0];
+    }
+
+    String sql = String.format(
+        "UPDATE %s SET %s = ? WHERE %s = ?",
+        config.targetTable(), config.clobColumn(), config.idColumn()
+    );
+
+    try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+      for (LobUpdate update : updates) {
+        if (update.content() instanceof Reader reader) {
+          pstmt.setCharacterStream(1, reader);
+        } else if (update.content() instanceof InputStream is) {
+          pstmt.setBinaryStream(1, is);
+        } else {
+          pstmt.setObject(1, update.content());
+        }
+        pstmt.setString(2, update.id());
+        pstmt.addBatch();
+      }
+      return pstmt.executeBatch();
+    }
+  }
+
+  /**
    * Determines the SQL type of the LOB column.
    *
    * @return SQL type from java.sql.Types.

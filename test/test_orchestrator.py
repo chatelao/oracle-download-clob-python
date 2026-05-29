@@ -75,14 +75,14 @@ def test_upload_mode(orchestrator, mock_managers, db_config, tmp_path, caplog):
 
     mock_managers["input"].load_ids.return_value = ["1", "2"]
     mock_managers["processor"].read_from_file.return_value = "content1"
-    mock_managers["db"].update_lob.return_value = 1
+    mock_managers["db"].update_lobs_batch.return_value = 1
 
     orchestrator.upload_mode(csv_path, input_dir, db_config)
 
     mock_managers["input"].load_ids.assert_called_once_with(csv_path)
     mock_managers["db"].connect.assert_called_once_with(db_config)
     mock_managers["processor"].open_file.assert_called_once()
-    mock_managers["db"].update_lob.assert_called_once()
+    mock_managers["db"].update_lobs_batch.assert_called_once()
     mock_managers["db"].commit.assert_called_once()
     mock_managers["db"].close.assert_called_once()
 
@@ -102,18 +102,18 @@ def test_upload_mode_regex(orchestrator, mock_managers, db_config, tmp_path, cap
     (input_dir / "no_match.txt").write_text("no_match")
 
     mock_managers["input"].load_ids.return_value = ["([0-9]+)_data", "prefix_(.*)\\.txt"]
-    mock_managers["db"].update_lob.return_value = 1
-    # open_file returns a context manager
+    mock_managers["db"].update_lobs_batch.return_value = 2
+    # open_file returns a file-like object directly now (no with in Orchestrator for individual files)
     mock_file = MagicMock()
-    mock_managers["processor"].open_file.return_value.__enter__.return_value = mock_file
+    mock_managers["processor"].open_file.return_value = mock_file
 
     with caplog.at_level("INFO"):
         orchestrator.upload_mode(csv_path, input_dir, db_config, id_as_regex=True)
 
-        # Check if update_lob was called with the correctly extracted IDs
-        # The order of files from iterdir() might vary, so we check calls
+        # Check if update_lobs_batch was called with the correctly extracted IDs
+        mock_managers["db"].update_lobs_batch.assert_called_once()
+        batch = mock_managers["db"].update_lobs_batch.call_args[0][0]
+        actual_ids = {item[1] for item in batch}
         expected_ids = {"123", "abc"}
-        actual_ids = {call.args[0] for call in mock_managers["db"].update_lob.call_args_list}
         assert actual_ids == expected_ids
-        assert mock_managers["db"].update_lob.call_count == 2
         assert "Total files attempted: 2, Successfully updated: 2" in caplog.text

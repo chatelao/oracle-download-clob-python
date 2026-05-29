@@ -1,11 +1,13 @@
 package com.oracle.tool;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -152,11 +154,13 @@ public class Orchestrator {
     }
 
     dbConnector.connect(dbConfig);
+    int uploadAttempted = 0;
+    int uploadSuccess = 0;
+    List<LobUpdate> batch = new ArrayList<>();
+    List<Closeable> resources = new ArrayList<>();
     try {
       int columnType = dbConnector.getLobColumnType();
       boolean isBinary = (columnType == Types.BLOB);
-      int uploadAttempted = 0;
-      int uploadSuccess = 0;
 
       if (idAsRegex) {
         List<Pattern> compiledPatterns = new ArrayList<>();
@@ -178,14 +182,12 @@ public class Orchestrator {
                 String dbId = matcher.groupCount() > 0 ? matcher.group(1) : matcher.group(0);
                 logger.info("Matched file {} with pattern {} -> ID: {}",
                     filename, pattern.pattern(), dbId);
-                if (updateSingleLob(dbId, filePath, isBinary)) {
-                  uploadSuccess++;
-                } else {
-                  logger.warn("No rows updated for ID {}. Record may not exist.", dbId);
-                }
+
+                addToBatch(dbId, filePath, isBinary, batch, resources);
                 uploadAttempted++;
-                if (uploadAttempted % batchSize == 0) {
-                  dbConnector.commit();
+
+                if (batch.size() >= batchSize) {
+                  uploadSuccess += flushBatch(batch, resources);
                 }
                 break;
               }
@@ -194,55 +196,91 @@ public class Orchestrator {
         }
       } else {
         for (String idVal : patternsOrIds) {
-          Path filePath = inputDir.resolve(idVal + ".txt");
-          if (!Files.exists(filePath)) {
-            filePath = inputDir.resolve(idVal);
-          }
-          if (!Files.exists(filePath)) {
-            try (Stream<Path> matches = Files.list(inputDir)) {
-              filePath = matches
-                  .filter(p -> p.getFileName().toString().startsWith(idVal + "."))
-                  .findFirst()
-                  .orElse(filePath);
-            }
-          }
+          Path filePath = findFileForId(inputDir, idVal);
 
-          if (Files.exists(filePath)) {
+          if (filePath != null && Files.exists(filePath)) {
             logger.info("Uploading file {} for ID {}", filePath.getFileName(), idVal);
-            if (updateSingleLob(idVal, filePath, isBinary)) {
-              uploadSuccess++;
-            } else {
-              logger.warn("No rows updated for ID {}. Record may not exist.", idVal);
-            }
+            addToBatch(idVal, filePath, isBinary, batch, resources);
             uploadAttempted++;
-            if (uploadAttempted % batchSize == 0) {
-              dbConnector.commit();
+
+            if (batch.size() >= batchSize) {
+              uploadSuccess += flushBatch(batch, resources);
             }
           } else {
-            logger.warn("File not found for ID {}: {}", idVal, filePath);
+            logger.warn("File not found for ID {}: {}", idVal, idVal);
           }
         }
       }
-      dbConnector.commit();
+      uploadSuccess += flushBatch(batch, resources);
       logger.info("Total files attempted: {}, Successfully updated: {}",
           uploadAttempted, uploadSuccess);
     } finally {
+      closeResources(resources);
       dbConnector.close();
     }
   }
 
-  private boolean updateSingleLob(String idVal, Path filePath, boolean isBinary)
-      throws IOException, SQLException {
-    int affected;
-    if (isBinary) {
-      try (InputStream is = clobProcessor.openFileAsStream(filePath)) {
-        affected = dbConnector.updateLob(idVal, is);
-      }
-    } else {
-      try (Reader reader = clobProcessor.openFile(filePath)) {
-        affected = dbConnector.updateLob(idVal, reader);
+  private void closeResources(List<Closeable> resources) {
+    for (Closeable resource : resources) {
+      try {
+        if (resource != null) {
+          resource.close();
+        }
+      } catch (IOException e) {
+        logger.error("Failed to close resource: {}", e.getMessage());
       }
     }
-    return affected > 0;
+    resources.clear();
+  }
+
+  private Path findFileForId(Path inputDir, String idVal) throws IOException {
+    Path filePath = inputDir.resolve(idVal + ".txt");
+    if (!Files.exists(filePath)) {
+      filePath = inputDir.resolve(idVal);
+    }
+    if (!Files.exists(filePath)) {
+      try (Stream<Path> matches = Files.list(inputDir)) {
+        filePath = matches
+            .filter(p -> p.getFileName().toString().startsWith(idVal + "."))
+            .findFirst()
+            .orElse(null);
+      }
+    }
+    return filePath;
+  }
+
+  private void addToBatch(String idVal, Path filePath, boolean isBinary,
+      List<LobUpdate> batch, List<Closeable> resources) throws IOException {
+    if (isBinary) {
+      InputStream is = clobProcessor.openFileAsStream(filePath);
+      resources.add(is);
+      batch.add(new LobUpdate(idVal, is));
+    } else {
+      Reader reader = clobProcessor.openFile(filePath);
+      resources.add(reader);
+      batch.add(new LobUpdate(idVal, reader));
+    }
+  }
+
+  private int flushBatch(List<LobUpdate> batch, List<Closeable> resources) throws SQLException {
+    if (batch.isEmpty()) {
+      return 0;
+    }
+    int successCount = 0;
+    try {
+      int[] results = dbConnector.updateLobsBatch(batch);
+      for (int i = 0; i < results.length; i++) {
+        if (results[i] > 0 || results[i] == Statement.SUCCESS_NO_INFO) {
+          successCount++;
+        } else {
+          logger.warn("No rows updated for ID {}. Record may not exist.", batch.get(i).id());
+        }
+      }
+      dbConnector.commit();
+    } finally {
+      closeResources(resources);
+      batch.clear();
+    }
+    return successCount;
   }
 }

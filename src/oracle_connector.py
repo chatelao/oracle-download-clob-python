@@ -131,6 +131,21 @@ class OracleConnector:
             cursor.execute(sql, (content, id))
             return cursor.rowcount
 
+    def update_lobs_batch(self, updates: List[Tuple[Any, str]]) -> int:
+        """Updates multiple records with new LOB data using executemany.
+        Updates is a list of (content, id) tuples.
+        Returns the total number of rows affected."""
+        if not self.conn or not self.config:
+            raise RuntimeError("Database not connected")
+
+        if not updates:
+            return 0
+
+        sql = f"UPDATE {self.config.target_table} SET {self.config.clob_column} = :1 WHERE {self.config.id_column} = :2"
+        with self.conn.cursor() as cursor:
+            cursor.executemany(sql, updates)
+            return cursor.rowcount
+
     def update_clob(self, id: str, content: Union[str, TextIO]) -> int:
         """Alias for update_lob for backward compatibility.
         Returns the number of rows affected."""
