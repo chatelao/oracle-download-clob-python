@@ -113,14 +113,15 @@ class OrchestratorTest {
         Reader reader = mock(Reader.class);
         when(clobProcessor.openFile(any())).thenReturn(reader);
         when(dbConnector.getLobColumnType()).thenReturn(Types.CLOB);
-        when(dbConnector.updateLob(eq("1"), any())).thenReturn(1);
+        when(dbConnector.executeUpdateBatch()).thenReturn(new int[]{1});
 
         Files.createFile(tempDir.resolve("1.txt"));
 
         orchestrator.uploadMode(Path.of("test.csv"), tempDir, dbConfig);
 
         verify(dbConnector).connect(dbConfig);
-        verify(dbConnector).updateLob(eq("1"), eq(reader));
+        verify(dbConnector).addUpdateToBatch(eq("1"), eq(reader));
+        verify(dbConnector).executeUpdateBatch();
         verify(dbConnector).commit();
         verify(dbConnector).close();
     }
