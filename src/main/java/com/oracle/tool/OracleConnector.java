@@ -24,6 +24,7 @@ public class OracleConnector implements AutoCloseable {
   private static final Logger logger = LoggerFactory.getLogger(OracleConnector.class);
   private Connection conn;
   private DBConfig config;
+  private PreparedStatement updateBatchStmt;
 
   /**
    * Establishes connection using Oracle JDBC Driver.
@@ -48,6 +49,15 @@ public class OracleConnector implements AutoCloseable {
    */
   @Override
   public void close() throws SQLException {
+    if (updateBatchStmt != null) {
+      try {
+        updateBatchStmt.close();
+      } catch (SQLException e) {
+        logger.error("Error closing updateBatchStmt: {}", e.getMessage());
+      } finally {
+        updateBatchStmt = null;
+      }
+    }
     if (conn != null && !conn.isClosed()) {
       conn.close();
       conn = null;
@@ -296,6 +306,50 @@ public class OracleConnector implements AutoCloseable {
         ResultSet rs = stmt.executeQuery(sql)) {
       return rs.getMetaData().getColumnType(1);
     }
+  }
+
+  /**
+   * Adds an update operation to the current batch.
+   *
+   * @param id      Record ID.
+   * @param content Reader or InputStream providing LOB content.
+   * @throws SQLException If a database access error occurs.
+   */
+  public void addUpdateToBatch(String id, Object content) throws SQLException {
+    if (conn == null) {
+      throw new SQLException("Database not connected");
+    }
+
+    if (updateBatchStmt == null) {
+      String sql = String.format(
+          "UPDATE %s SET %s = ? WHERE %s = ?",
+          config.targetTable(), config.clobColumn(), config.idColumn()
+      );
+      updateBatchStmt = conn.prepareStatement(sql);
+    }
+
+    if (content instanceof Reader reader) {
+      updateBatchStmt.setCharacterStream(1, reader);
+    } else if (content instanceof InputStream is) {
+      updateBatchStmt.setBinaryStream(1, is);
+    } else {
+      updateBatchStmt.setObject(1, content);
+    }
+    updateBatchStmt.setString(2, id);
+    updateBatchStmt.addBatch();
+  }
+
+  /**
+   * Executes the currently accumulated update batch.
+   *
+   * @return Array of affected row counts.
+   * @throws SQLException If a database access error occurs.
+   */
+  public int[] executeUpdateBatch() throws SQLException {
+    if (updateBatchStmt == null) {
+      return new int[0];
+    }
+    return updateBatchStmt.executeBatch();
   }
 
   /**

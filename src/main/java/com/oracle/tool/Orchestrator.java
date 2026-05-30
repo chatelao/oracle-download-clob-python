@@ -158,91 +158,130 @@ public class Orchestrator {
       int uploadAttempted = 0;
       int uploadSuccess = 0;
 
-      if (idAsRegex) {
-        List<Pattern> compiledPatterns = new ArrayList<>();
-        for (String p : patternsOrIds) {
-          try {
-            compiledPatterns.add(Pattern.compile(p));
-          } catch (Exception e) {
-            logger.error("Invalid regex pattern '{}': {}", p, e.getMessage());
-          }
-        }
+      List<AutoCloseable> resources = new ArrayList<>();
+      List<String> currentBatchIds = new ArrayList<>();
 
-        try (Stream<Path> paths = Files.list(inputDir)) {
-          Iterable<Path> filePaths = paths.filter(Files::isRegularFile)::iterator;
-          for (Path filePath : filePaths) {
-            String filename = filePath.getFileName().toString();
-            for (Pattern pattern : compiledPatterns) {
-              Matcher matcher = pattern.matcher(filename);
-              if (matcher.find()) {
-                String dbId = matcher.groupCount() > 0 ? matcher.group(1) : matcher.group(0);
-                logger.info("Matched file {} with pattern {} -> ID: {}",
-                    filename, pattern.pattern(), dbId);
-                if (updateSingleLob(dbId, filePath, isBinary)) {
-                  uploadSuccess++;
-                } else {
-                  logger.warn("No rows updated for ID {}. Record may not exist.", dbId);
+      try {
+        if (idAsRegex) {
+          List<Pattern> compiledPatterns = new ArrayList<>();
+          for (String p : patternsOrIds) {
+            try {
+              compiledPatterns.add(Pattern.compile(p));
+            } catch (Exception e) {
+              logger.error("Invalid regex pattern '{}': {}", p, e.getMessage());
+            }
+          }
+
+          try (Stream<Path> paths = Files.list(inputDir)) {
+            Iterable<Path> filePaths = paths.filter(Files::isRegularFile)::iterator;
+            for (Path filePath : filePaths) {
+              String filename = filePath.getFileName().toString();
+              for (Pattern pattern : compiledPatterns) {
+                Matcher matcher = pattern.matcher(filename);
+                if (matcher.find()) {
+                  String dbId = matcher.groupCount() > 0 ? matcher.group(1) : matcher.group(0);
+                  logger.info("Matched file {} with pattern {} -> ID: {}",
+                      filename, pattern.pattern(), dbId);
+
+                  addFileToBatch(dbId, filePath, isBinary, resources, currentBatchIds);
+                  uploadAttempted++;
+
+                  if (uploadAttempted % batchSize == 0) {
+                    uploadSuccess += executeBatchAndClose(resources, currentBatchIds);
+                  }
+                  break;
                 }
-                uploadAttempted++;
-                if (uploadAttempted % batchSize == 0) {
-                  dbConnector.commit();
-                }
-                break;
               }
             }
           }
-        }
-      } else {
-        for (String idVal : patternsOrIds) {
-          Path filePath = inputDir.resolve(idVal + ".txt");
-          if (!Files.exists(filePath)) {
-            filePath = inputDir.resolve(idVal);
-          }
-          if (!Files.exists(filePath)) {
-            try (Stream<Path> matches = Files.list(inputDir)) {
-              filePath = matches
-                  .filter(p -> p.getFileName().toString().startsWith(idVal + "."))
-                  .findFirst()
-                  .orElse(filePath);
+        } else {
+          for (String idVal : patternsOrIds) {
+            Path filePath = inputDir.resolve(idVal + ".txt");
+            if (!Files.exists(filePath)) {
+              filePath = inputDir.resolve(idVal);
             }
-          }
+            if (!Files.exists(filePath)) {
+              try (Stream<Path> matches = Files.list(inputDir)) {
+                filePath = matches
+                    .filter(p -> p.getFileName().toString().startsWith(idVal + "."))
+                    .findFirst()
+                    .orElse(filePath);
+              }
+            }
 
-          if (Files.exists(filePath)) {
-            logger.info("Uploading file {} for ID {}", filePath.getFileName(), idVal);
-            if (updateSingleLob(idVal, filePath, isBinary)) {
-              uploadSuccess++;
+            if (Files.exists(filePath)) {
+              logger.info("Uploading file {} for ID {}", filePath.getFileName(), idVal);
+              addFileToBatch(idVal, filePath, isBinary, resources, currentBatchIds);
+              uploadAttempted++;
+
+              if (uploadAttempted % batchSize == 0) {
+                uploadSuccess += executeBatchAndClose(resources, currentBatchIds);
+              }
             } else {
-              logger.warn("No rows updated for ID {}. Record may not exist.", idVal);
+              logger.warn("File not found for ID {}: {}", idVal, filePath);
             }
-            uploadAttempted++;
-            if (uploadAttempted % batchSize == 0) {
-              dbConnector.commit();
-            }
-          } else {
-            logger.warn("File not found for ID {}: {}", idVal, filePath);
+          }
+        }
+        uploadSuccess += executeBatchAndClose(resources, currentBatchIds);
+        logger.info("Total files attempted: {}, Successfully updated: {}",
+            uploadAttempted, uploadSuccess);
+      } finally {
+        for (AutoCloseable res : resources) {
+          try {
+            res.close();
+          } catch (Exception e) {
+            logger.error("Error closing resource: {}", e.getMessage());
           }
         }
       }
-      dbConnector.commit();
-      logger.info("Total files attempted: {}, Successfully updated: {}",
-          uploadAttempted, uploadSuccess);
     } finally {
       dbConnector.close();
     }
   }
 
-  private boolean updateSingleLob(String idVal, Path filePath, boolean isBinary)
+  private void addFileToBatch(String id, Path filePath, boolean isBinary,
+      List<AutoCloseable> resources, List<String> currentBatchIds)
       throws IOException, SQLException {
-    int affected;
     if (isBinary) {
-      try (InputStream is = clobProcessor.openFileAsStream(filePath)) {
-        affected = dbConnector.updateLob(idVal, is);
-      }
+      InputStream is = clobProcessor.openFileAsStream(filePath);
+      resources.add(is);
+      dbConnector.addUpdateToBatch(id, is);
     } else {
-      try (Reader reader = clobProcessor.openFile(filePath)) {
-        affected = dbConnector.updateLob(idVal, reader);
+      Reader reader = clobProcessor.openFile(filePath);
+      resources.add(reader);
+      dbConnector.addUpdateToBatch(id, reader);
+    }
+    currentBatchIds.add(id);
+  }
+
+  private int executeBatchAndClose(List<AutoCloseable> resources, List<String> currentBatchIds)
+      throws SQLException {
+    if (currentBatchIds.isEmpty()) {
+      return 0;
+    }
+
+    int successCount = 0;
+    int[] results = dbConnector.executeUpdateBatch();
+    for (int i = 0; i < results.length; i++) {
+      if (results[i] > 0 || results[i] == -2) { // -2 is SUCCESS_NO_INFO
+        successCount++;
+      } else if (results[i] == 0) {
+        logger.warn("No rows updated for ID {}. Record may not exist.", currentBatchIds.get(i));
       }
     }
-    return affected > 0;
+
+    dbConnector.commit();
+
+    for (AutoCloseable res : resources) {
+      try {
+        res.close();
+      } catch (Exception e) {
+        logger.error("Error closing resource: {}", e.getMessage());
+      }
+    }
+    resources.clear();
+    currentBatchIds.clear();
+
+    return successCount;
   }
 }
