@@ -102,4 +102,9 @@ Improving the tool's efficiency and reliability based on architectural audit rec
     - [x] Use generic column names in GTT for better reusability ✅ 2026-05-21
     - [x] Implement explicit existence check for GTT ✅ 2026-05-21
 - [x] Implement batch updates for upload mode using `addBatch()` / `executeBatch()` ✅ 2026-05-29
-- [ ] Implement asynchronous processing using Virtual Threads (Project Loom) in the Orchestrator
+- [ ] Implement asynchronous processing using Virtual Threads (Project Loom) in the Orchestrator:
+    - [ ] Research thread-safety of LOB streaming in OJDBC.
+    - [x] Make `ProgressReporter` thread-safe for parallel updates ✅ 2026-05-29.
+    - [ ] Implement JDBC connection pooling to support parallel threads.
+    - [ ] Implement parallel LOB processing in `Orchestrator` using Virtual Threads.
+    - [ ] Add CLI option `--parallelism` to control the number of virtual threads.
