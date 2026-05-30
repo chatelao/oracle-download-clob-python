@@ -1,15 +1,17 @@
 package com.oracle.tool;
 
 import java.io.PrintWriter;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Progress reporter that prints a progress bar to the console.
+ * Thread-safe for concurrent updates.
  */
 public class ConsoleProgressReporter implements ProgressReporter {
   private final PrintWriter out;
-  private int total = 0;
-  private int current = 0;
-  private boolean finished = false;
+  private final AtomicInteger current = new AtomicInteger(0);
+  private volatile int total = 0;
+  private volatile boolean finished = false;
   private static final int BAR_WIDTH = 50;
 
   public ConsoleProgressReporter() {
@@ -17,24 +19,26 @@ public class ConsoleProgressReporter implements ProgressReporter {
   }
 
   @Override
-  public void setTotal(int total) {
+  public synchronized void setTotal(int total) {
     this.total = total;
-    this.current = 0;
+    this.current.set(0);
     this.finished = false;
     render();
   }
 
   @Override
-  public void update(int n) {
-    this.current += n;
-    render();
-    if (this.current >= this.total) {
+  public void update(int value) {
+    int newVal = this.current.addAndGet(value);
+    synchronized (this) {
+      render();
+    }
+    if (newVal >= this.total && this.total > 0) {
       finish();
     }
   }
 
   @Override
-  public void finish() {
+  public synchronized void finish() {
     if (!finished) {
       if (total > 0) {
         out.println();
@@ -47,7 +51,8 @@ public class ConsoleProgressReporter implements ProgressReporter {
     if (total <= 0) {
       return;
     }
-    double percent = (double) current / total;
+    int currentVal = current.get();
+    double percent = (double) currentVal / total;
     int progress = (int) (percent * BAR_WIDTH);
 
     StringBuilder sb = new StringBuilder("\rDownloading [");
@@ -60,7 +65,7 @@ public class ConsoleProgressReporter implements ProgressReporter {
         sb.append(" ");
       }
     }
-    sb.append(String.format("] %d/%d (%.0f%%)", current, total, percent * 100));
+    sb.append(String.format("] %d/%d (%.0f%%)", currentVal, total, percent * 100));
     out.print(sb.toString());
     out.flush();
   }
