@@ -13,6 +13,7 @@ class DBConfig:
     gtt_name: str = "GTT_IDS"
     query: Optional[str] = None
     filename_column: Optional[str] = None
+    id_query: Optional[str] = None
 
 class OracleConnector:
     """Manages connection lifecycle and executes SQL."""
@@ -88,6 +89,19 @@ class OracleConnector:
                     break
                 for row in rows:
                     yield row
+
+    def fetch_ids(self, query: str) -> List[str]:
+        """Fetches a list of IDs from the database using the provided query."""
+        if not self.conn:
+            raise RuntimeError("Database not connected")
+
+        ids = []
+        with self.conn.cursor() as cursor:
+            cursor.execute(query)
+            for row in cursor:
+                if row and row[0]:
+                    ids.append(str(row[0]))
+        return ids
 
     def fetch_clobs_in(self, ids: List[str]) -> Iterator[Tuple[str, Any, Optional[str]]]:
         """Executes query with IN clause and yields (ID, LOB, Filename)."""

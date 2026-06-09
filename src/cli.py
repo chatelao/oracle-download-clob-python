@@ -67,8 +67,8 @@ def load_config(ctx, param, value):
                 config_data = dict(config.items('DEFAULT'))
 
         # Normalize keys: replace '-' with '_' to match click parameter names
-        # Skip csv-path as per requirement "except the id list"
-        normalized_config = {k.replace('-', '_'): v for k, v in config_data.items() if k != 'csv-path'}
+        # Skip id list sources as per requirement "except the id list"
+        normalized_config = {k.replace('-', '_'): v for k, v in config_data.items() if k not in ('csv-path', 'id-query')}
 
         ctx.default_map = ctx.default_map or {}
         ctx.default_map.update(normalized_config)
@@ -86,7 +86,8 @@ def cli(debug):
 
 @cli.command()
 @click.option('--config', type=click.Path(exists=True), callback=load_config, is_eager=True, expose_value=False, help='Path to INI or TOML config file.')
-@click.option('--csv-path', type=click.Path(exists=True), required=True, help='Path to the CSV file containing IDs.')
+@click.option('--csv-path', type=click.Path(exists=True), required=False, help='Path to the CSV file containing IDs.')
+@click.option('--id-query', required=False, help='SQL query to fetch IDs from the database.')
 @click.option('--output-dir', type=click.Path(), required=True, help='Target directory for downloaded files.')
 @click.option('--user', required=True, help='Oracle DB username.')
 @click.option('--password', required=True, help='Oracle DB password.')
@@ -97,10 +98,12 @@ def cli(debug):
 @click.option('--clob-column', required=True, help='Column name for CLOBs.')
 @click.option('--filename-column', required=False, help='Column name for filenames.')
 @click.option('--gtt-name', default="GTT_IDS", help='Name of the Global Temporary Table.')
-def download(csv_path, output_dir, user, password, dsn, table, query, id_column, clob_column, filename_column, gtt_name):
+def download(csv_path, id_query, output_dir, user, password, dsn, table, query, id_column, clob_column, filename_column, gtt_name):
     """Download CLOBs to local files."""
     if not table and not query:
         raise click.UsageError("Either --table or --query must be provided.")
+    if not csv_path and not id_query:
+        raise click.UsageError("Either --csv-path or --id-query must be provided.")
 
     try:
         db_config = DBConfig(
@@ -112,7 +115,8 @@ def download(csv_path, output_dir, user, password, dsn, table, query, id_column,
             clob_column=clob_column,
             gtt_name=gtt_name,
             query=query,
-            filename_column=filename_column
+            filename_column=filename_column,
+            id_query=id_query
         )
 
         orchestrator = Orchestrator(
@@ -122,10 +126,11 @@ def download(csv_path, output_dir, user, password, dsn, table, query, id_column,
             fs_manager=FSManager()
         )
 
-        logger.info(f"Starting download mode. CSV: {csv_path}, Output: {output_dir}")
+        logger.info(f"Starting download mode. CSV: {csv_path}, ID Query: {id_query}, Output: {output_dir}")
         reporter = ClickProgressReporter()
         try:
-            orchestrator.download_mode(Path(csv_path), Path(output_dir), db_config, reporter=reporter)
+            p_csv_path = Path(csv_path) if csv_path else None
+            orchestrator.download_mode(p_csv_path, Path(output_dir), db_config, reporter=reporter)
         finally:
             reporter.finish()
         logger.info("Download completed successfully.")
@@ -137,7 +142,8 @@ def download(csv_path, output_dir, user, password, dsn, table, query, id_column,
 
 @cli.command()
 @click.option('--config', type=click.Path(exists=True), callback=load_config, is_eager=True, expose_value=False, help='Path to INI or TOML config file.')
-@click.option('--csv-path', type=click.Path(exists=True), required=True, help='Path to the CSV file containing IDs.')
+@click.option('--csv-path', type=click.Path(exists=True), required=False, help='Path to the CSV file containing IDs.')
+@click.option('--id-query', required=False, help='SQL query to fetch IDs from the database.')
 @click.option('--input-dir', type=click.Path(exists=True), required=True, help='Source directory containing files to upload.')
 @click.option('--user', required=True, help='Oracle DB username.')
 @click.option('--password', required=True, help='Oracle DB password.')
@@ -147,8 +153,11 @@ def download(csv_path, output_dir, user, password, dsn, table, query, id_column,
 @click.option('--clob-column', required=True, help='Column name for CLOBs.')
 @click.option('--id-as-regex', is_flag=True, help='Treat IDs as regex patterns to match filenames.')
 @click.option('--batch-size', default=100, help='Batch size for periodic commits.')
-def upload(csv_path, input_dir, user, password, dsn, table, id_column, clob_column, id_as_regex, batch_size):
+def upload(csv_path, id_query, input_dir, user, password, dsn, table, id_column, clob_column, id_as_regex, batch_size):
     """Upload local files to Oracle CLOBs."""
+    if not csv_path and not id_query:
+        raise click.UsageError("Either --csv-path or --id-query must be provided.")
+
     try:
         db_config = DBConfig(
             user=user,
@@ -156,7 +165,8 @@ def upload(csv_path, input_dir, user, password, dsn, table, id_column, clob_colu
             dsn=dsn,
             target_table=table,
             id_column=id_column,
-            clob_column=clob_column
+            clob_column=clob_column,
+            id_query=id_query
         )
 
         orchestrator = Orchestrator(
@@ -166,8 +176,9 @@ def upload(csv_path, input_dir, user, password, dsn, table, id_column, clob_colu
             fs_manager=FSManager()
         )
 
-        logger.info(f"Starting upload mode. CSV: {csv_path}, Input: {input_dir}, ID as Regex: {id_as_regex}, Batch Size: {batch_size}")
-        orchestrator.upload_mode(Path(csv_path), Path(input_dir), db_config, id_as_regex=id_as_regex, batch_size=batch_size)
+        logger.info(f"Starting upload mode. CSV: {csv_path}, ID Query: {id_query}, Input: {input_dir}, ID as Regex: {id_as_regex}, Batch Size: {batch_size}")
+        p_csv_path = Path(csv_path) if csv_path else None
+        orchestrator.upload_mode(p_csv_path, Path(input_dir), db_config, id_as_regex=id_as_regex, batch_size=batch_size)
         logger.info("Upload completed successfully.")
     except Exception as e:
         logger.error(f"Upload failed: {e}")

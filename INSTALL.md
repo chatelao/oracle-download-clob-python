@@ -70,10 +70,10 @@ The tool has two primary modes: `download` and `upload`.
 
 ### 1. Download CLOBs to Local Files
 
-Downloads CLOB data for a specific set of IDs provided in a CSV file.
+Downloads CLOB data for a specific set of IDs provided in a CSV file or via a database query.
 
 ```bash
-# Using the binary
+# Using the binary with a CSV file
 ./oracle-clob-tool download \
     --csv-path ids.csv \
     --output-dir ./output \
@@ -84,14 +84,14 @@ Downloads CLOB data for a specific set of IDs provided in a CSV file.
     --id-column ID \
     --clob-column DATA
 
-# OR use a custom query for download
+# OR use a database query to fetch IDs
 ./oracle-clob-tool download \
-    --csv-path ids.csv \
+    --id-query "SELECT ID FROM OTHER_TABLE WHERE SHOULD_DOWNLOAD = 1" \
     --output-dir ./output \
     --user MYUSER \
     --password MYPASS \
     --dsn MYHOST:1521/SERVICE \
-    --query "SELECT ID, DATA FROM MY_TABLE WHERE STATUS = 'ACTIVE'" \
+    --table MY_TABLE \
     --id-column ID \
     --clob-column DATA
 
@@ -101,12 +101,23 @@ python3 src/cli.py download [OPTIONS]
 
 ### 2. Upload Local Files to Oracle CLOBs
 
-Uploads local file content into the CLOB fields of an Oracle table, matching IDs from a CSV file with local filenames.
+Uploads local file content into the CLOB fields of an Oracle table, matching IDs from a CSV file or a database query with local filenames.
 
 ```bash
-# Using the binary
+# Using the binary with a CSV file
 ./oracle-clob-tool upload \
     --csv-path ids.csv \
+    --input-dir ./input \
+    --user MYUSER \
+    --password MYPASS \
+    --dsn MYHOST:1521/SERVICE \
+    --table MY_TABLE \
+    --id-column ID \
+    --clob-column DATA
+
+# OR using a database query to fetch IDs
+./oracle-clob-tool upload \
+    --id-query "SELECT ID FROM MY_TABLE WHERE NEEDS_UPDATE = 1" \
     --input-dir ./input \
     --user MYUSER \
     --password MYPASS \

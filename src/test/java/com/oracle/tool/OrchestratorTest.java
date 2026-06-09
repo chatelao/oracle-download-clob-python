@@ -51,7 +51,7 @@ class OrchestratorTest {
 
         orchestrator.downloadMode(Path.of("test.csv"), Path.of("output"), dbConfig);
 
-        verify(dbConnector, never()).connect(any());
+        verify(dbConnector).connect(dbConfig);
         verify(inputManager).loadIds(any());
     }
 
@@ -103,7 +103,7 @@ class OrchestratorTest {
 
         orchestrator.uploadMode(Path.of("test.csv"), Path.of("input"), dbConfig);
 
-        verify(dbConnector, never()).connect(any());
+        verify(dbConnector).connect(dbConfig);
     }
 
     @Test
