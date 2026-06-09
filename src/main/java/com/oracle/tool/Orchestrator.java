@@ -171,8 +171,9 @@ public class Orchestrator {
         return;
       }
 
-      int columnType = dbConnector.getLobColumnType();
-      boolean isBinary = (columnType == Types.BLOB);
+      OracleConnector.LobMetadata metadata = dbConnector.getLobColumnMetadata();
+      boolean isBinary = (metadata.type() == Types.BLOB);
+      boolean isXml = metadata.typeName() != null && metadata.typeName().toUpperCase().contains("XMLTYPE");
       int uploadAttempted = 0;
       int uploadSuccess = 0;
 
@@ -202,6 +203,15 @@ public class Orchestrator {
                   logger.info("Matched file {} with pattern {} -> ID: {}",
                       filename, pattern.pattern(), dbId);
 
+                  if (isXml) {
+                    CLOBProcessor.ValidationResult result = clobProcessor.validateXml(filePath);
+                    if (!result.valid()) {
+                      logger.error("Invalid XML content in file {}. Skipping upload for ID {}. Error: {}",
+                          filePath.getFileName(), dbId, result.errorMessage());
+                      continue;
+                    }
+                  }
+
                   addFileToBatch(dbId, filePath, isBinary, resources, currentBatchIds, currentBatchPaths);
                   uploadAttempted++;
 
@@ -229,6 +239,15 @@ public class Orchestrator {
             }
 
             if (Files.exists(filePath)) {
+              if (isXml) {
+                CLOBProcessor.ValidationResult result = clobProcessor.validateXml(filePath);
+                if (!result.valid()) {
+                  logger.error("Invalid XML content in file {}. Skipping upload for ID {}. Error: {}",
+                      filePath.getFileName(), idVal, result.errorMessage());
+                  continue;
+                }
+              }
+
               logger.info("Uploading file {} for ID {}", filePath.getFileName(), idVal);
               addFileToBatch(idVal, filePath, isBinary, resources, currentBatchIds, currentBatchPaths);
               uploadAttempted++;

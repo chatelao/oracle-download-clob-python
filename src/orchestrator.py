@@ -99,7 +99,9 @@ class Orchestrator:
                 return
 
             col_type = self.db_connector.get_lob_column_type()
+            type_name = self.db_connector.get_lob_column_type_name()
             is_binary = (col_type == oracledb.DB_TYPE_BLOB)
+            is_xml = "XMLTYPE" in type_name.upper()
             mode = 'rb' if is_binary else 'r'
 
             upload_attempted = 0
@@ -144,6 +146,13 @@ class Orchestrator:
                         if match:
                             db_id = match.group(1) if match.groups() else match.group(0)
                             logger.info(f"Matched file {filename} with pattern {cp.pattern} -> ID: {db_id}")
+
+                            if is_xml:
+                                is_valid, err_msg = self.clob_processor.validate_xml(file_path)
+                                if not is_valid:
+                                    logger.error(f"Invalid XML content in file {file_path.name}. Skipping upload for ID {db_id}. Error: {err_msg}")
+                                    continue
+
                             with self.clob_processor.open_file(file_path, mode=mode) as f:
                                 _perform_update(db_id, f, file_path)
                             upload_attempted += 1
@@ -164,6 +173,12 @@ class Orchestrator:
                             file_path = matches[0]
 
                     if file_path.exists():
+                        if is_xml:
+                            is_valid, err_msg = self.clob_processor.validate_xml(file_path)
+                            if not is_valid:
+                                logger.error(f"Invalid XML content in file {file_path.name}. Skipping upload for ID {id_val}. Error: {err_msg}")
+                                continue
+
                         logger.info(f"Uploading file {file_path.name} for ID {id_val}")
                         with self.clob_processor.open_file(file_path, mode=mode) as f:
                             _perform_update(id_val, f, file_path)
