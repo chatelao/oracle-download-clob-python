@@ -165,8 +165,9 @@ def test_update_clob_no_auto_commit(connector, db_config):
         connector.connect(db_config)
         connector.update_clob("1", "new_content")
 
-        mock_cursor.execute.assert_called_once()
-        args, _ = mock_cursor.execute.call_args
+        # Two calls now: one for get_lob_column_type and one for UPDATE
+        assert mock_cursor.execute.call_count == 2
+        args, _ = mock_cursor.execute.call_args_list[1]
         assert "UPDATE" in args[0]
         assert args[1] == ("new_content", "1")
         mock_conn.commit.assert_not_called()
@@ -187,6 +188,33 @@ def test_runtime_error_if_not_connected(connector):
         list(connector.fetch_clobs_join())
     with pytest.raises(RuntimeError):
         connector.update_clob("1", "content")
+
+def test_update_lob_xmltype(connector, db_config):
+    import oracledb
+    with patch('oracledb.connect') as mock_connect:
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+        mock_connect.return_value = mock_conn
+
+        # Mock get_lob_column_type to return XMLTYPE
+        if hasattr(oracledb, "DB_TYPE_XMLTYPE"):
+            mock_cursor.description = [("MY_CLOB", oracledb.DB_TYPE_XMLTYPE)]
+        else:
+            # Fallback if the attribute doesn't exist in the installed version
+            mock_cursor.description = [("MY_CLOB", "XMLTYPE")]
+
+        connector.connect(db_config)
+        connector.update_lob("1", "<xml/>")
+
+        # First call is from _get_update_sql to detect type
+        # Second call is from update_lob to execute update
+        assert mock_cursor.execute.call_count == 2
+
+        update_call = mock_cursor.execute.call_args_list[1]
+        sql, binds = update_call[0]
+        assert "XMLTYPE(:1)" in sql
+        assert binds == ("<xml/>", "1")
 
 def test_connect_error(connector, db_config):
     import oracledb

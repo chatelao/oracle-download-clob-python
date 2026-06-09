@@ -105,13 +105,26 @@ class Orchestrator:
             upload_attempted = 0
             upload_success = 0
 
-            def _perform_update(db_id_val, f_obj):
+            def _perform_update(db_id_val, f_obj, file_path):
                 nonlocal upload_success
-                affected = self.db_connector.update_lob(db_id_val, f_obj)
-                if affected > 0:
-                    upload_success += 1
-                else:
-                    logger.warning(f"No rows updated for ID {db_id_val}. Record may not exist.")
+                try:
+                    affected = self.db_connector.update_lob(db_id_val, f_obj)
+                    if affected > 0:
+                        upload_success += 1
+                    else:
+                        logger.warning(f"No rows updated for ID {db_id_val}. Record may not exist.")
+                except Exception as e:
+                    logger.error(f"Failed to update ID {db_id_val} from file {file_path.name}")
+                    try:
+                        with open(file_path, 'r', errors='replace') as preview_f:
+                            lines = [preview_f.readline().strip() for _ in range(3)]
+                            logger.error(f"Data preview (first 3 lines):")
+                            for line in lines:
+                                if line:
+                                    logger.error(f"  {line}")
+                    except Exception as preview_e:
+                        logger.error(f"Could not read data preview: {preview_e}")
+                    raise
 
             if id_as_regex:
                 import re
@@ -132,7 +145,7 @@ class Orchestrator:
                             db_id = match.group(1) if match.groups() else match.group(0)
                             logger.info(f"Matched file {filename} with pattern {cp.pattern} -> ID: {db_id}")
                             with self.clob_processor.open_file(file_path, mode=mode) as f:
-                                _perform_update(db_id, f)
+                                _perform_update(db_id, f, file_path)
                             upload_attempted += 1
                             if upload_attempted % batch_size == 0:
                                 self.db_connector.commit()
@@ -153,7 +166,7 @@ class Orchestrator:
                     if file_path.exists():
                         logger.info(f"Uploading file {file_path.name} for ID {id_val}")
                         with self.clob_processor.open_file(file_path, mode=mode) as f:
-                            _perform_update(id_val, f)
+                            _perform_update(id_val, f, file_path)
                         upload_attempted += 1
                         if upload_attempted % batch_size == 0:
                             self.db_connector.commit()

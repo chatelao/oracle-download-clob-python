@@ -204,11 +204,40 @@ class OracleConnectorTest {
                     .thenReturn(connection);
             connector.connect(config);
 
+            when(connection.createStatement()).thenReturn(statement);
+            when(statement.executeQuery(anyString())).thenReturn(resultSet);
+            when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+            when(resultSetMetaData.getColumnTypeName(1)).thenReturn("CLOB");
+
             when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
 
             Reader reader = new StringReader("content");
             connector.updateLob("1", reader);
 
+            verify(preparedStatement).setCharacterStream(eq(1), eq(reader));
+            verify(preparedStatement).setString(eq(2), eq("1"));
+            verify(preparedStatement).executeUpdate();
+        }
+    }
+
+    @Test
+    void updateLob_XmlTypeSuccess() throws SQLException {
+        try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+                    .thenReturn(connection);
+            connector.connect(config);
+
+            when(connection.createStatement()).thenReturn(statement);
+            when(statement.executeQuery(anyString())).thenReturn(resultSet);
+            when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+            when(resultSetMetaData.getColumnTypeName(1)).thenReturn("XMLTYPE");
+
+            when(connection.prepareStatement(contains("XMLTYPE(?)"))).thenReturn(preparedStatement);
+
+            Reader reader = new StringReader("<xml/>");
+            connector.updateLob("1", reader);
+
+            verify(connection).prepareStatement(contains("XMLTYPE(?)"));
             verify(preparedStatement).setCharacterStream(eq(1), eq(reader));
             verify(preparedStatement).setString(eq(2), eq("1"));
             verify(preparedStatement).executeUpdate();

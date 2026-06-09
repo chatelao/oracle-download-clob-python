@@ -21,10 +21,12 @@ class OracleConnector:
     def __init__(self):
         self.conn: Optional[oracledb.Connection] = None
         self.config: Optional[DBConfig] = None
+        self._cached_update_sql: Optional[str] = None
 
     def connect(self, config: DBConfig):
         """Establishes connection using python-oracledb."""
         self.config = config
+        self._cached_update_sql = None
         try:
             self.conn = oracledb.connect(
                 user=config.user,
@@ -36,6 +38,7 @@ class OracleConnector:
 
     def close(self):
         """Closes the database connection."""
+        self._cached_update_sql = None
         if self.conn:
             self.conn.close()
             self.conn = None
@@ -140,7 +143,7 @@ class OracleConnector:
         if not self.conn or not self.config:
             raise RuntimeError("Database not connected")
 
-        sql = f"UPDATE {self.config.target_table} SET {self.config.clob_column} = :1 WHERE {self.config.id_column} = :2"
+        sql = self._get_update_sql()
         with self.conn.cursor() as cursor:
             cursor.execute(sql, (content, id))
             return cursor.rowcount
@@ -165,3 +168,31 @@ class OracleConnector:
         """Commits the current transaction."""
         if self.conn:
             self.conn.commit()
+
+    def _get_update_sql(self) -> str:
+        if self._cached_update_sql:
+            return self._cached_update_sql
+
+        if not self.conn or not self.config:
+            raise RuntimeError("Database not connected")
+
+        db_type = self.get_lob_column_type()
+        is_xml_type = False
+        if hasattr(oracledb, "DB_TYPE_XMLTYPE") and db_type == oracledb.DB_TYPE_XMLTYPE:
+            is_xml_type = True
+        elif str(db_type).upper().endswith("XMLTYPE"):
+            is_xml_type = True
+
+        if is_xml_type:
+            self._cached_update_sql = (
+                f"UPDATE {self.config.target_table} "
+                f"SET {self.config.clob_column} = XMLTYPE(:1) "
+                f"WHERE {self.config.id_column} = :2"
+            )
+        else:
+            self._cached_update_sql = (
+                f"UPDATE {self.config.target_table} "
+                f"SET {self.config.clob_column} = :1 "
+                f"WHERE {self.config.id_column} = :2"
+            )
+        return self._cached_update_sql
