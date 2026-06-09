@@ -177,6 +177,31 @@ public class OracleConnector implements AutoCloseable {
   }
 
   /**
+   * Fetches a list of IDs from the database using the provided query.
+   *
+   * @param query SQL query to fetch IDs.
+   * @return List of IDs.
+   * @throws SQLException If a database access error occurs.
+   */
+  public List<String> fetchIds(String query) throws SQLException {
+    if (conn == null) {
+      throw new SQLException("Database not connected");
+    }
+
+    List<String> ids = new java.util.ArrayList<>();
+    try (Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(query)) {
+      while (rs.next()) {
+        String id = rs.getString(1);
+        if (id != null) {
+          ids.add(id);
+        }
+      }
+    }
+    return ids;
+  }
+
+  /**
    * Executes the query with an IN clause and returns a Stream of LobRecords.
    *
    * @param ids List of IDs to fetch.

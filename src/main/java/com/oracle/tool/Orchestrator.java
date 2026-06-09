@@ -54,7 +54,7 @@ public class Orchestrator {
   /**
    * Orchestrates UC-1: Download CLOBs with progress reporting.
    *
-   * @param csvPath   Path to the CSV file containing IDs.
+   * @param csvPath   Path to the CSV file containing IDs (optional if idQuery is provided).
    * @param outputDir Directory where CLOBs will be saved.
    * @param dbConfig  Database configuration.
    * @param reporter  Progress reporter (optional).
@@ -64,14 +64,23 @@ public class Orchestrator {
   public void downloadMode(Path csvPath, Path outputDir, DBConfig dbConfig,
       ProgressReporter reporter)
       throws IOException, SQLException {
-    List<String> ids = inputManager.loadIds(csvPath);
-    if (ids.isEmpty()) {
-      logger.info("No IDs found in CSV file.");
-      return;
-    }
-
     dbConnector.connect(dbConfig);
     try {
+      List<String> ids;
+      if (dbConfig.idQuery() != null && !dbConfig.idQuery().isEmpty()) {
+        logger.info("Fetching IDs using query: {}", dbConfig.idQuery());
+        ids = dbConnector.fetchIds(dbConfig.idQuery());
+      } else if (csvPath != null) {
+        ids = inputManager.loadIds(csvPath);
+      } else {
+        throw new IllegalArgumentException("Either csvPath or idQuery must be provided.");
+      }
+
+      if (ids.isEmpty()) {
+        logger.info("No IDs found.");
+        return;
+      }
+
       fsManager.ensureDirectory(outputDir);
 
       Stream<LobRecord> clobStream;
@@ -134,7 +143,7 @@ public class Orchestrator {
   /**
    * Orchestrates UC-2: Upload CLOBs with optional regex matching and batch size.
    *
-   * @param csvPath     Path to the CSV file containing IDs.
+   * @param csvPath     Path to the CSV file containing IDs (optional if idQuery is provided).
    * @param inputDir    Directory containing files to upload.
    * @param dbConfig    Database configuration.
    * @param idAsRegex   Whether to treat IDs as regex patterns.
@@ -145,14 +154,23 @@ public class Orchestrator {
   public void uploadMode(Path csvPath, Path inputDir, DBConfig dbConfig, boolean idAsRegex,
       int batchSize)
       throws IOException, SQLException {
-    List<String> patternsOrIds = inputManager.loadIds(csvPath);
-    if (patternsOrIds.isEmpty()) {
-      logger.info("No IDs or patterns found in CSV file.");
-      return;
-    }
-
     dbConnector.connect(dbConfig);
     try {
+      List<String> patternsOrIds;
+      if (dbConfig.idQuery() != null && !dbConfig.idQuery().isEmpty()) {
+        logger.info("Fetching IDs using query: {}", dbConfig.idQuery());
+        patternsOrIds = dbConnector.fetchIds(dbConfig.idQuery());
+      } else if (csvPath != null) {
+        patternsOrIds = inputManager.loadIds(csvPath);
+      } else {
+        throw new IllegalArgumentException("Either csvPath or idQuery must be provided.");
+      }
+
+      if (patternsOrIds.isEmpty()) {
+        logger.info("No IDs found.");
+        return;
+      }
+
       int columnType = dbConnector.getLobColumnType();
       boolean isBinary = (columnType == Types.BLOB);
       int uploadAttempted = 0;

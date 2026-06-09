@@ -32,15 +32,23 @@ class Orchestrator:
         self.clob_processor = clob_processor
         self.fs_manager = fs_manager
 
-    def download_mode(self, csv_path: Path, output_dir: Path, db_config: DBConfig,
+    def download_mode(self, csv_path: Optional[Path], output_dir: Path, db_config: DBConfig,
                       reporter: Optional[ProgressReporter] = None):
         """Orchestrates UC-1."""
-        ids = self.input_manager.load_ids(csv_path)
-        if not ids:
-            return
-
         self.db_connector.connect(db_config)
         try:
+            if db_config.id_query:
+                logger.info(f"Fetching IDs using query: {db_config.id_query}")
+                ids = self.db_connector.fetch_ids(db_config.id_query)
+            elif csv_path:
+                ids = self.input_manager.load_ids(csv_path)
+            else:
+                raise ValueError("Either csv_path or id_query must be provided.")
+
+            if not ids:
+                logger.info("No IDs found.")
+                return
+
             self.fs_manager.ensure_directory(output_dir)
 
             if len(ids) < 1000:
@@ -72,16 +80,24 @@ class Orchestrator:
                 reporter.finish()
             self.db_connector.close()
 
-    def upload_mode(self, csv_path: Path, input_dir: Path, db_config: DBConfig,
+    def upload_mode(self, csv_path: Optional[Path], input_dir: Path, db_config: DBConfig,
                     id_as_regex: bool = False, batch_size: int = 100):
         """Orchestrates UC-2."""
-        patterns_or_ids = self.input_manager.load_ids(csv_path)
-        if not patterns_or_ids:
-            return
-
         import oracledb
         self.db_connector.connect(db_config)
         try:
+            if db_config.id_query:
+                logger.info(f"Fetching IDs using query: {db_config.id_query}")
+                patterns_or_ids = self.db_connector.fetch_ids(db_config.id_query)
+            elif csv_path:
+                patterns_or_ids = self.input_manager.load_ids(csv_path)
+            else:
+                raise ValueError("Either csv_path or id_query must be provided.")
+
+            if not patterns_or_ids:
+                logger.info("No IDs found.")
+                return
+
             col_type = self.db_connector.get_lob_column_type()
             is_binary = (col_type == oracledb.DB_TYPE_BLOB)
             mode = 'rb' if is_binary else 'r'

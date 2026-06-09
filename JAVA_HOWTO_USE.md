@@ -49,7 +49,8 @@ java -jar target/oracle-clob-tool.jar download \
 
 | Option | Required | Description | Default |
 | :--- | :--- | :--- | :--- |
-| `--csv-path` | Yes | Path to the CSV file containing IDs. | |
+| `--csv-path` | No | Path to the CSV file containing IDs. | Either `--csv-path` or `--id-query` is required. |
+| `--id-query` | No | SQL query to fetch IDs from the database. | |
 | `--output-dir` | Yes | Target directory for downloaded files. | |
 | `--user` | Yes | Oracle DB username. | |
 | `--password` | Yes | Oracle DB password. | |
@@ -100,7 +101,8 @@ java -jar target/oracle-clob-tool.jar upload \
 
 | Option | Required | Description |
 | :--- | :--- | :--- |
-| `--csv-path` | Yes | Path to the CSV file containing IDs. |
+| `--csv-path` | No | Path to the CSV file containing IDs. | Either `--csv-path` or `--id-query` is required. |
+| `--id-query` | No | SQL query to fetch IDs from the database. | |
 | `--input-dir` | Yes | Source directory containing files to upload. |
 | `--user` | Yes | Oracle DB username. |
 | `--password` | Yes | Oracle DB password. |
@@ -133,7 +135,7 @@ java -jar target/oracle-clob-tool.jar upload \
 
 The tool supports loading parameters from TOML or INI configuration files using the `--config` option. This is useful for storing database credentials and connection details.
 
-**Note:** Command-line arguments consistently override configuration file defaults. The `--csv-path` must always be provided via the command line.
+**Note:** Command-line arguments consistently override configuration file defaults. The `--csv-path` or `--id-query` must always be provided via the command line.
 
 ### TOML Example (`config.toml`)
 

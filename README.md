@@ -34,8 +34,14 @@ Refer to [INSTALL.md](INSTALL.md) for detailed instructions on how to install an
 # Download CLOBs
 python3 src/cli.py download --csv-path ids.csv --output-dir ./output [DB_OPTIONS]
 
+# Or using --id-query instead of CSV
+python3 src/cli.py download --id-query "SELECT ID FROM MY_TABLE WHERE STATUS = 'READY'" --output-dir ./output [DB_OPTIONS]
+
 # Upload CLOBs
 python3 src/cli.py upload --csv-path ids.csv --input-dir ./input [DB_OPTIONS]
+
+# Or using --id-query
+python3 src/cli.py upload --id-query "SELECT ID FROM MY_TABLE WHERE NEEDS_UPDATE = 1" --input-dir ./input [DB_OPTIONS]
 ```
 
 ## Testing

@@ -61,9 +61,13 @@ public class CliCommand implements Runnable {
       }
     }
 
-    @Option(names = "--csv-path", required = true,
+    @Option(names = "--csv-path", required = false,
         description = "Path to the CSV file containing IDs.")
     Path csvPath;
+
+    @Option(names = "--id-query", required = false,
+        description = "SQL query to fetch IDs from the database.")
+    String idQuery;
 
     @Option(names = "--output-dir", required = true,
         description = "Target directory for downloaded files.")
@@ -110,13 +114,18 @@ public class CliCommand implements Runnable {
         spec.commandLine().usage(spec.commandLine().getErr());
         return 1;
       }
+      if (csvPath == null && (idQuery == null || idQuery.isEmpty())) {
+        spec.commandLine().getErr().println("Error: Either --csv-path or --id-query must be provided.");
+        spec.commandLine().usage(spec.commandLine().getErr());
+        return 1;
+      }
 
       try {
         DBConfig dbConfig = new DBConfig(user, password, dsn, table,
-            idColumn, clobColumn, gttName, query, filenameColumn);
+            idColumn, clobColumn, gttName, query, filenameColumn, idQuery);
         Orchestrator orchestrator = createOrchestrator();
 
-        logger.info("Starting download mode. CSV: {}, Output: {}", csvPath, outputDir);
+        logger.info("Starting download mode. CSV: {}, ID Query: {}, Output: {}", csvPath, idQuery, outputDir);
         orchestrator.downloadMode(csvPath, outputDir, dbConfig, new ConsoleProgressReporter());
         logger.info("Download completed successfully.");
         return 0;
@@ -146,9 +155,13 @@ public class CliCommand implements Runnable {
       }
     }
 
-    @Option(names = "--csv-path", required = true,
+    @Option(names = "--csv-path", required = false,
         description = "Path to the CSV file containing IDs.")
     Path csvPath;
+
+    @Option(names = "--id-query", required = false,
+        description = "SQL query to fetch IDs from the database.")
+    String idQuery;
 
     @Option(names = "--input-dir", required = true,
         description = "Source directory containing files to upload.")
@@ -185,12 +198,18 @@ public class CliCommand implements Runnable {
       if (parent != null && parent.debug) {
         configureDebugLogging();
       }
+      if (csvPath == null && (idQuery == null || idQuery.isEmpty())) {
+        spec.commandLine().getErr().println("Error: Either --csv-path or --id-query must be provided.");
+        spec.commandLine().usage(spec.commandLine().getErr());
+        return 1;
+      }
       try {
-        DBConfig dbConfig = new DBConfig(user, password, dsn, table, idColumn, clobColumn);
+        DBConfig dbConfig = new DBConfig(user, password, dsn, table, idColumn, clobColumn,
+            "GTT_IDS", null, null, idQuery);
         Orchestrator orchestrator = createOrchestrator();
 
-        logger.info("Starting upload mode. CSV: {}, Input: {}, ID as Regex: {}, Batch Size: {}",
-            csvPath, inputDir, idAsRegex, batchSize);
+        logger.info("Starting upload mode. CSV: {}, ID Query: {}, Input: {}, ID as Regex: {}, Batch Size: {}",
+            csvPath, idQuery, inputDir, idAsRegex, batchSize);
         orchestrator.uploadMode(csvPath, inputDir, dbConfig, idAsRegex, batchSize);
         logger.info("Upload completed successfully.");
         return 0;
@@ -229,8 +248,8 @@ public class CliCommand implements Runnable {
           TomlMapper mapper = new TomlMapper();
           Map<String, Object> data = mapper.readValue(configFile, Map.class);
           data.forEach((k, v) -> {
-            // Skip csv-path as per requirement "except the id list"
-            if (!"csv-path".equals(k)) {
+            // Skip id list sources as per requirement "except the id list"
+            if (!"csv-path".equals(k) && !"id-query".equals(k)) {
               values.put("--" + k, String.valueOf(v));
             }
           });
@@ -242,8 +261,8 @@ public class CliCommand implements Runnable {
           }
           if (section != null) {
             section.forEach((k, v) -> {
-              // Skip csv-path as per requirement "except the id list"
-              if (!"csv-path".equals(k)) {
+              // Skip id list sources as per requirement "except the id list"
+              if (!"csv-path".equals(k) && !"id-query".equals(k)) {
                 values.put("--" + k, v);
               }
             });
