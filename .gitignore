@@ -37,6 +37,7 @@ pip-delete-this-directory.txt
 
 # Unit test / coverage reports
 htmlcov/
+.coverage
 .toml
 .cache
 .pytest_cache/
@@ -148,4 +149,5 @@ cython_debug/
 .idea/
 
 # Maven
+target/
 dependency-reduced-pom.xml

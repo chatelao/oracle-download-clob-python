@@ -18,6 +18,7 @@
     <commons-csv.version>1.10.0</commons-csv.version>
     <slf4j.version>2.0.9</slf4j.version>
     <logback.version>1.4.11</logback.version>
+    <jacoco.version>0.8.11</jacoco.version>
     <junit.version>5.10.0</junit.version>
     <mockito.version>5.5.0</mockito.version>
     <testcontainers.version>1.19.0</testcontainers.version>
@@ -162,6 +163,25 @@
             <phase>validate</phase>
             <goals>
               <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
             </goals>
           </execution>
         </executions>
