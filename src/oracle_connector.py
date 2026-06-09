@@ -164,6 +164,22 @@ class OracleConnector:
             cursor.execute(sql)
             return cursor.description[0][1]
 
+    def get_lob_column_type_name(self) -> str:
+        """Determines the database type name of the LOB column."""
+        if not self.conn or not self.config:
+            raise RuntimeError("Database not connected")
+
+        source = f"({self.config.query})" if self.config.query else self.config.target_table
+        sql = f"SELECT {self.config.clob_column} FROM {source} WHERE 1=0"
+        with self.conn.cursor() as cursor:
+            cursor.execute(sql)
+            # cursor.description[0][1] is the type.
+            db_type = cursor.description[0][1]
+            # oracledb DbType objects have a name property or can be stringified.
+            if hasattr(db_type, "name"):
+                return db_type.name
+            return str(db_type)
+
     def commit(self):
         """Commits the current transaction."""
         if self.conn:
@@ -176,12 +192,8 @@ class OracleConnector:
         if not self.conn or not self.config:
             raise RuntimeError("Database not connected")
 
-        db_type = self.get_lob_column_type()
-        is_xml_type = False
-        if hasattr(oracledb, "DB_TYPE_XMLTYPE") and db_type == oracledb.DB_TYPE_XMLTYPE:
-            is_xml_type = True
-        elif str(db_type).upper().endswith("XMLTYPE"):
-            is_xml_type = True
+        type_name = self.get_lob_column_type_name()
+        is_xml_type = type_name and "XMLTYPE" in type_name.upper()
 
         if is_xml_type:
             self._cached_update_sql = (

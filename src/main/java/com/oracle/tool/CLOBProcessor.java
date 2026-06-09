@@ -11,6 +11,9 @@ import java.nio.file.Path;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+import org.xml.sax.helpers.DefaultHandler;
 
 /**
  * Handles streaming of large text data between database and file system.
@@ -79,5 +82,51 @@ public class CLOBProcessor {
    */
   public InputStream openFileAsStream(Path sourcePath) throws IOException {
     return Files.newInputStream(sourcePath);
+  }
+
+  /**
+   * Result of XML validation.
+   */
+  public record ValidationResult(boolean valid, String errorMessage) {
+  }
+
+  /**
+   * Validates if the file at the given path contains valid XML.
+   *
+   * @param path Path to the file.
+   * @return ValidationResult indicating if valid and the error message if not.
+   */
+  public ValidationResult validateXml(Path path) {
+    try {
+      SAXParserFactory factory = SAXParserFactory.newInstance();
+      factory.setNamespaceAware(true);
+      // Secure against XXE
+      try {
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      } catch (Exception e) {
+        // Feature might not be supported by all parsers
+      }
+      try {
+        factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+      } catch (Exception e) {
+      }
+      try {
+        factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+      } catch (Exception e) {
+      }
+      try {
+        factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+      } catch (Exception e) {
+      }
+      factory.setXIncludeAware(false);
+
+      SAXParser saxParser = factory.newSAXParser();
+      try (InputStream is = Files.newInputStream(path)) {
+        saxParser.parse(is, new DefaultHandler());
+      }
+      return new ValidationResult(true, null);
+    } catch (Exception e) {
+      return new ValidationResult(false, e.getMessage());
+    }
   }
 }

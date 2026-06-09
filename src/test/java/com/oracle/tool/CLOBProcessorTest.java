@@ -77,4 +77,31 @@ class CLOBProcessorTest {
         String actual = processor.readFromFile(source);
         assertEquals(content, actual);
     }
+
+    @Test
+    void validateXml_ValidXml_ReturnsTrue() throws IOException {
+        Path source = tempDir.resolve("valid.xml");
+        Files.writeString(source, "<root><child>data</child></root>");
+        CLOBProcessor.ValidationResult result = processor.validateXml(source);
+        assertTrue(result.valid());
+        assertNull(result.errorMessage());
+    }
+
+    @Test
+    void validateXml_InvalidXml_ReturnsFalse() throws IOException {
+        Path source = tempDir.resolve("invalid.xml");
+        Files.writeString(source, "<root><child>data</child></root"); // Missing closing tag
+        CLOBProcessor.ValidationResult result = processor.validateXml(source);
+        assertFalse(result.valid());
+        assertNotNull(result.errorMessage());
+    }
+
+    @Test
+    void validateXml_EmptyFile_ReturnsFalse() throws IOException {
+        Path source = tempDir.resolve("empty.xml");
+        Files.createFile(source);
+        CLOBProcessor.ValidationResult result = processor.validateXml(source);
+        assertFalse(result.valid());
+        assertNotNull(result.errorMessage());
+    }
 }

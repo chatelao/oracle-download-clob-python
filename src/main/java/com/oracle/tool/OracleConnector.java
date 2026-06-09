@@ -315,23 +315,18 @@ public class OracleConnector implements AutoCloseable {
   }
 
   /**
-   * Determines the SQL type of the LOB column.
-   *
-   * @return SQL type from java.sql.Types.
-   * @throws SQLException If a database access error occurs.
+   * Represents metadata for a LOB column.
    */
-  public int getLobColumnType() throws SQLException {
-    return getLobColumnType(null);
+  public record LobMetadata(int type, String typeName) {
   }
 
   /**
-   * Determines the SQL type of the LOB column, optionally returning the type name.
+   * Retrieves metadata for the LOB column.
    *
-   * @param typeNameOut If not null, the first element will be set to the type name.
-   * @return SQL type from java.sql.Types.
+   * @return LobMetadata containing type and type name.
    * @throws SQLException If a database access error occurs.
    */
-  private int getLobColumnType(String[] typeNameOut) throws SQLException {
+  public LobMetadata getLobColumnMetadata() throws SQLException {
     if (conn == null) {
       throw new SQLException("Database not connected");
     }
@@ -340,11 +335,30 @@ public class OracleConnector implements AutoCloseable {
     String sql = String.format("SELECT %s FROM %s WHERE 1=0", config.clobColumn(), source);
     try (Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery(sql)) {
-      if (typeNameOut != null && typeNameOut.length > 0) {
-        typeNameOut[0] = rs.getMetaData().getColumnTypeName(1);
-      }
-      return rs.getMetaData().getColumnType(1);
+      int type = rs.getMetaData().getColumnType(1);
+      String typeName = rs.getMetaData().getColumnTypeName(1);
+      return new LobMetadata(type, typeName);
     }
+  }
+
+  /**
+   * Determines the SQL type of the LOB column.
+   *
+   * @return SQL type from java.sql.Types.
+   * @throws SQLException If a database access error occurs.
+   */
+  public int getLobColumnType() throws SQLException {
+    return getLobColumnMetadata().type();
+  }
+
+  /**
+   * Determines the SQL type name of the LOB column.
+   *
+   * @return SQL type name.
+   * @throws SQLException If a database access error occurs.
+   */
+  public String getLobColumnTypeName() throws SQLException {
+    return getLobColumnMetadata().typeName();
   }
 
   /**
@@ -403,10 +417,8 @@ public class OracleConnector implements AutoCloseable {
       return cachedUpdateSql;
     }
 
-    String[] typeNameContainer = new String[1];
-    getLobColumnType(typeNameContainer);
-    String typeName = typeNameContainer[0];
-    boolean isXmlType = "XMLTYPE".equalsIgnoreCase(typeName);
+    String typeName = getLobColumnTypeName();
+    boolean isXmlType = typeName != null && typeName.toUpperCase().contains("XMLTYPE");
 
     if (isXmlType) {
       cachedUpdateSql = String.format(

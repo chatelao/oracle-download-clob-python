@@ -112,7 +112,7 @@ class OrchestratorTest {
         when(inputManager.loadIds(any())).thenReturn(ids);
         Reader reader = mock(Reader.class);
         when(clobProcessor.openFile(any())).thenReturn(reader);
-        when(dbConnector.getLobColumnType()).thenReturn(Types.CLOB);
+        when(dbConnector.getLobColumnMetadata()).thenReturn(new OracleConnector.LobMetadata(Types.CLOB, "CLOB"));
         when(dbConnector.executeUpdateBatch()).thenReturn(new int[]{1});
 
         Files.createFile(tempDir.resolve("1.txt"));
