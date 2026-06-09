@@ -178,6 +178,7 @@ public class Orchestrator {
 
       List<AutoCloseable> resources = new ArrayList<>();
       List<String> currentBatchIds = new ArrayList<>();
+      List<Path> currentBatchPaths = new ArrayList<>();
 
       try {
         if (idAsRegex) {
@@ -201,11 +202,11 @@ public class Orchestrator {
                   logger.info("Matched file {} with pattern {} -> ID: {}",
                       filename, pattern.pattern(), dbId);
 
-                  addFileToBatch(dbId, filePath, isBinary, resources, currentBatchIds);
+                  addFileToBatch(dbId, filePath, isBinary, resources, currentBatchIds, currentBatchPaths);
                   uploadAttempted++;
 
                   if (uploadAttempted % batchSize == 0) {
-                    uploadSuccess += executeBatchAndClose(resources, currentBatchIds);
+                    uploadSuccess += executeBatchAndClose(resources, currentBatchIds, currentBatchPaths);
                   }
                   break;
                 }
@@ -229,18 +230,18 @@ public class Orchestrator {
 
             if (Files.exists(filePath)) {
               logger.info("Uploading file {} for ID {}", filePath.getFileName(), idVal);
-              addFileToBatch(idVal, filePath, isBinary, resources, currentBatchIds);
+              addFileToBatch(idVal, filePath, isBinary, resources, currentBatchIds, currentBatchPaths);
               uploadAttempted++;
 
               if (uploadAttempted % batchSize == 0) {
-                uploadSuccess += executeBatchAndClose(resources, currentBatchIds);
+                uploadSuccess += executeBatchAndClose(resources, currentBatchIds, currentBatchPaths);
               }
             } else {
               logger.warn("File not found for ID {}: {}", idVal, filePath);
             }
           }
         }
-        uploadSuccess += executeBatchAndClose(resources, currentBatchIds);
+        uploadSuccess += executeBatchAndClose(resources, currentBatchIds, currentBatchPaths);
         logger.info("Total files attempted: {}, Successfully updated: {}",
             uploadAttempted, uploadSuccess);
       } finally {
@@ -258,7 +259,7 @@ public class Orchestrator {
   }
 
   private void addFileToBatch(String id, Path filePath, boolean isBinary,
-      List<AutoCloseable> resources, List<String> currentBatchIds)
+      List<AutoCloseable> resources, List<String> currentBatchIds, List<Path> currentBatchPaths)
       throws IOException, SQLException {
     if (isBinary) {
       InputStream is = clobProcessor.openFileAsStream(filePath);
@@ -270,35 +271,51 @@ public class Orchestrator {
       dbConnector.addUpdateToBatch(id, reader);
     }
     currentBatchIds.add(id);
+    currentBatchPaths.add(filePath);
   }
 
-  private int executeBatchAndClose(List<AutoCloseable> resources, List<String> currentBatchIds)
+  private int executeBatchAndClose(List<AutoCloseable> resources, List<String> currentBatchIds,
+      List<Path> currentBatchPaths)
       throws SQLException {
     if (currentBatchIds.isEmpty()) {
       return 0;
     }
 
     int successCount = 0;
-    int[] results = dbConnector.executeUpdateBatch();
-    for (int i = 0; i < results.length; i++) {
-      if (results[i] > 0 || results[i] == -2) { // -2 is SUCCESS_NO_INFO
-        successCount++;
-      } else if (results[i] == 0) {
-        logger.warn("No rows updated for ID {}. Record may not exist.", currentBatchIds.get(i));
+    try {
+      int[] results = dbConnector.executeUpdateBatch();
+      for (int i = 0; i < results.length; i++) {
+        if (results[i] > 0 || results[i] == -2) { // -2 is SUCCESS_NO_INFO
+          successCount++;
+        } else if (results[i] == 0) {
+          logger.warn("No rows updated for ID {}. Record may not exist.", currentBatchIds.get(i));
+        }
       }
-    }
-
-    dbConnector.commit();
-
-    for (AutoCloseable res : resources) {
-      try {
-        res.close();
-      } catch (Exception e) {
-        logger.error("Error closing resource: {}", e.getMessage());
+      dbConnector.commit();
+    } catch (SQLException ex) {
+      logger.error("Batch update failed. Data preview for failed batch:");
+      for (Path path : currentBatchPaths) {
+        try {
+          List<String> lines = Files.readAllLines(path);
+          logger.error("File: {} - First 3 lines:", path.getFileName());
+          lines.stream().limit(3).forEach(line -> logger.error("  {}", line));
+        } catch (IOException e) {
+          logger.error("Could not read file {} for logging: {}", path, e.getMessage());
+        }
       }
+      throw ex;
+    } finally {
+      for (AutoCloseable res : resources) {
+        try {
+          res.close();
+        } catch (Exception e) {
+          logger.error("Error closing resource: {}", e.getMessage());
+        }
+      }
+      resources.clear();
+      currentBatchIds.clear();
+      currentBatchPaths.clear();
     }
-    resources.clear();
-    currentBatchIds.clear();
 
     return successCount;
   }

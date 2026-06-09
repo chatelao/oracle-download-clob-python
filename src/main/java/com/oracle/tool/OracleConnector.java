@@ -25,6 +25,7 @@ public class OracleConnector implements AutoCloseable {
   private Connection conn;
   private DBConfig config;
   private PreparedStatement updateBatchStmt;
+  private String cachedUpdateSql;
 
   /**
    * Establishes connection using Oracle JDBC Driver.
@@ -34,6 +35,7 @@ public class OracleConnector implements AutoCloseable {
    */
   public void connect(DBConfig config) throws SQLException {
     this.config = config;
+    this.cachedUpdateSql = null;
     String url = "jdbc:oracle:thin:@" + config.dsn();
     try {
       this.conn = DriverManager.getConnection(url, config.user(), config.password());
@@ -49,6 +51,7 @@ public class OracleConnector implements AutoCloseable {
    */
   @Override
   public void close() throws SQLException {
+    cachedUpdateSql = null;
     if (updateBatchStmt != null) {
       try {
         updateBatchStmt.close();
@@ -296,10 +299,7 @@ public class OracleConnector implements AutoCloseable {
       throw new SQLException("Database not connected");
     }
 
-    String sql = String.format(
-        "UPDATE %s SET %s = ? WHERE %s = ?",
-        config.targetTable(), config.clobColumn(), config.idColumn()
-    );
+    String sql = getUpdateSql();
 
     try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
       if (content instanceof Reader reader) {
@@ -321,6 +321,17 @@ public class OracleConnector implements AutoCloseable {
    * @throws SQLException If a database access error occurs.
    */
   public int getLobColumnType() throws SQLException {
+    return getLobColumnType(null);
+  }
+
+  /**
+   * Determines the SQL type of the LOB column, optionally returning the type name.
+   *
+   * @param typeNameOut If not null, the first element will be set to the type name.
+   * @return SQL type from java.sql.Types.
+   * @throws SQLException If a database access error occurs.
+   */
+  private int getLobColumnType(String[] typeNameOut) throws SQLException {
     if (conn == null) {
       throw new SQLException("Database not connected");
     }
@@ -329,6 +340,9 @@ public class OracleConnector implements AutoCloseable {
     String sql = String.format("SELECT %s FROM %s WHERE 1=0", config.clobColumn(), source);
     try (Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery(sql)) {
+      if (typeNameOut != null && typeNameOut.length > 0) {
+        typeNameOut[0] = rs.getMetaData().getColumnTypeName(1);
+      }
       return rs.getMetaData().getColumnType(1);
     }
   }
@@ -346,11 +360,7 @@ public class OracleConnector implements AutoCloseable {
     }
 
     if (updateBatchStmt == null) {
-      String sql = String.format(
-          "UPDATE %s SET %s = ? WHERE %s = ?",
-          config.targetTable(), config.clobColumn(), config.idColumn()
-      );
-      updateBatchStmt = conn.prepareStatement(sql);
+      updateBatchStmt = conn.prepareStatement(getUpdateSql());
     }
 
     if (content instanceof Reader reader) {
@@ -386,5 +396,29 @@ public class OracleConnector implements AutoCloseable {
     if (conn != null) {
       conn.commit();
     }
+  }
+
+  private String getUpdateSql() throws SQLException {
+    if (cachedUpdateSql != null) {
+      return cachedUpdateSql;
+    }
+
+    String[] typeNameContainer = new String[1];
+    getLobColumnType(typeNameContainer);
+    String typeName = typeNameContainer[0];
+    boolean isXmlType = "XMLTYPE".equalsIgnoreCase(typeName);
+
+    if (isXmlType) {
+      cachedUpdateSql = String.format(
+          "UPDATE %s SET %s = XMLTYPE(?) WHERE %s = ?",
+          config.targetTable(), config.clobColumn(), config.idColumn()
+      );
+    } else {
+      cachedUpdateSql = String.format(
+          "UPDATE %s SET %s = ? WHERE %s = ?",
+          config.targetTable(), config.clobColumn(), config.idColumn()
+      );
+    }
+    return cachedUpdateSql;
   }
 }
