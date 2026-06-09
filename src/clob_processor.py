@@ -37,3 +37,15 @@ class CLOBProcessor:
         """Opens a file for reading, providing a handle for streaming."""
         encoding = 'utf-8' if 'b' not in mode else None
         return source_path.open(mode, encoding=encoding)
+
+    def validate_xml(self, file_path: Path) -> tuple[bool, str | None]:
+        """Validates if the file contains valid XML.
+        Returns (is_valid, error_message)."""
+        import xml.etree.ElementTree as ET
+        try:
+            # Using iterparse for memory efficiency, must iterate fully to validate
+            for _, _ in ET.iterparse(file_path):
+                pass
+            return True, None
+        except Exception as e:
+            return False, str(e)

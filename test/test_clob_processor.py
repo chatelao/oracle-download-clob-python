@@ -29,3 +29,27 @@ def test_read_from_file(tmp_path):
     result = processor.read_from_file(source_path)
 
     assert result == content
+
+def test_validate_xml_valid(tmp_path):
+    source_path = tmp_path / "valid.xml"
+    source_path.write_text("<root><child>data</child></root>", encoding='utf-8')
+    processor = CLOBProcessor()
+    is_valid, err_msg = processor.validate_xml(source_path)
+    assert is_valid is True
+    assert err_msg is None
+
+def test_validate_xml_invalid(tmp_path):
+    source_path = tmp_path / "invalid.xml"
+    source_path.write_text("<root><child>data</child></root", encoding='utf-8') # Missing closing tag
+    processor = CLOBProcessor()
+    is_valid, err_msg = processor.validate_xml(source_path)
+    assert is_valid is False
+    assert err_msg is not None
+
+def test_validate_xml_empty(tmp_path):
+    source_path = tmp_path / "empty.xml"
+    source_path.write_text("", encoding='utf-8')
+    processor = CLOBProcessor()
+    is_valid, err_msg = processor.validate_xml(source_path)
+    assert is_valid is False
+    assert err_msg is not None
