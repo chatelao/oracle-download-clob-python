@@ -103,6 +103,9 @@ public class CliCommand implements Runnable {
         description = "Name of the Global Temporary Table.")
     private String gttName;
 
+    @Option(names = "--disable-fan", description = "Disable Oracle Fast Application Notification (FAN).")
+    private boolean disableFan;
+
     @Override
     public Integer call() throws Exception {
       if (parent != null && parent.debug) {
@@ -122,10 +125,11 @@ public class CliCommand implements Runnable {
 
       try {
         DBConfig dbConfig = new DBConfig(user, password, dsn, table,
-            idColumn, clobColumn, gttName, query, filenameColumn, idQuery);
+            idColumn, clobColumn, gttName, query, filenameColumn, idQuery, disableFan);
         Orchestrator orchestrator = createOrchestrator();
 
-        logger.info("Starting download mode. CSV: {}, ID Query: {}, Output: {}", csvPath, idQuery, outputDir);
+        logger.info("Starting download mode. CSV: {}, ID Query: {}, Output: {}, Disable FAN: {}",
+            csvPath, idQuery, outputDir, disableFan);
         orchestrator.downloadMode(csvPath, outputDir, dbConfig, new ConsoleProgressReporter());
         logger.info("Download completed successfully.");
         return 0;
@@ -193,6 +197,9 @@ public class CliCommand implements Runnable {
         description = "Batch size for periodic commits.")
     private int batchSize;
 
+    @Option(names = "--disable-fan", description = "Disable Oracle Fast Application Notification (FAN).")
+    private boolean disableFan;
+
     @Override
     public Integer call() throws Exception {
       if (parent != null && parent.debug) {
@@ -205,11 +212,11 @@ public class CliCommand implements Runnable {
       }
       try {
         DBConfig dbConfig = new DBConfig(user, password, dsn, table, idColumn, clobColumn,
-            "GTT_IDS", null, null, idQuery);
+            "GTT_IDS", null, null, idQuery, disableFan);
         Orchestrator orchestrator = createOrchestrator();
 
-        logger.info("Starting upload mode. CSV: {}, ID Query: {}, Input: {}, ID as Regex: {}, Batch Size: {}",
-            csvPath, idQuery, inputDir, idAsRegex, batchSize);
+        logger.info("Starting upload mode. CSV: {}, ID Query: {}, Input: {}, ID as Regex: {}, Batch Size: {}, Disable FAN: {}",
+            csvPath, idQuery, inputDir, idAsRegex, batchSize, disableFan);
         orchestrator.uploadMode(csvPath, inputDir, dbConfig, idAsRegex, batchSize);
         logger.info("Upload completed successfully.");
         return 0;
