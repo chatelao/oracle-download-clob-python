@@ -20,6 +20,8 @@ import java.sql.Types;
 import java.util.List;
 import java.util.stream.Stream;
 
+import java.util.Properties;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -50,7 +52,7 @@ class OracleConnectorTest {
     @Test
     void connect_Success() throws SQLException {
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
-            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), any(Properties.class)))
                     .thenReturn(connection);
 
             connector.connect(config);
@@ -62,7 +64,7 @@ class OracleConnectorTest {
     @Test
     void createGtt_Success() throws SQLException {
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
-            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), any(Properties.class)))
                     .thenReturn(connection);
             connector.connect(config);
 
@@ -88,7 +90,7 @@ class OracleConnectorTest {
     @Test
     void createGtt_AlreadyExists() throws SQLException {
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
-            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), any(Properties.class)))
                     .thenReturn(connection);
             connector.connect(config);
 
@@ -112,7 +114,7 @@ class OracleConnectorTest {
     @Test
     void fetchClobsJoin_ReturnsStream() throws SQLException {
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
-            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), any(Properties.class)))
                     .thenReturn(connection);
             connector.connect(config);
 
@@ -136,7 +138,7 @@ class OracleConnectorTest {
     @Test
     void fetchClobsIn_ReturnsStream() throws SQLException {
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
-            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), any(Properties.class)))
                     .thenReturn(connection);
             connector.connect(config);
 
@@ -164,7 +166,7 @@ class OracleConnectorTest {
     void fetchClobsIn_WithQuery() throws SQLException {
         config = new DBConfig("user", "pass", "dsn", "table", "id", "clob", "GTT_IDS", "SELECT * FROM VIEW");
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
-            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), any(Properties.class)))
                     .thenReturn(connection);
             connector.connect(config);
 
@@ -187,7 +189,7 @@ class OracleConnectorTest {
     @Test
     void fetchClobsIn_EmptyIds() throws SQLException {
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
-            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), any(Properties.class)))
                     .thenReturn(connection);
             connector.connect(config);
 
@@ -200,7 +202,7 @@ class OracleConnectorTest {
     @Test
     void updateLob_ClobSuccess() throws SQLException {
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
-            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), any(Properties.class)))
                     .thenReturn(connection);
             connector.connect(config);
 
@@ -223,7 +225,7 @@ class OracleConnectorTest {
     @Test
     void updateLob_XmlTypeSuccess() throws SQLException {
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
-            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), any(Properties.class)))
                     .thenReturn(connection);
             connector.connect(config);
 
@@ -247,7 +249,7 @@ class OracleConnectorTest {
     @Test
     void close_ClosesConnection() throws SQLException {
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
-            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), any(Properties.class)))
                     .thenReturn(connection);
             connector.connect(config);
 

@@ -13,14 +13,15 @@ public record DBConfig(
     String gttName,
     String query,
     String filenameColumn,
-    String idQuery
+    String idQuery,
+    boolean disableFan
 ) {
   /**
    * Secondary constructor with default GTT name.
    */
   public DBConfig(String user, String password, String dsn, String targetTable,
       String idColumn, String clobColumn) {
-    this(user, password, dsn, targetTable, idColumn, clobColumn, "GTT_IDS", null, null, null);
+    this(user, password, dsn, targetTable, idColumn, clobColumn, "GTT_IDS", null, null, null, false);
   }
 
   /**
@@ -28,7 +29,7 @@ public record DBConfig(
    */
   public DBConfig(String user, String password, String dsn, String targetTable,
       String idColumn, String clobColumn, String gttName) {
-    this(user, password, dsn, targetTable, idColumn, clobColumn, gttName, null, null, null);
+    this(user, password, dsn, targetTable, idColumn, clobColumn, gttName, null, null, null, false);
   }
 
   /**
@@ -36,7 +37,7 @@ public record DBConfig(
    */
   public DBConfig(String user, String password, String dsn, String targetTable,
       String idColumn, String clobColumn, String gttName, String query) {
-    this(user, password, dsn, targetTable, idColumn, clobColumn, gttName, query, null, null);
+    this(user, password, dsn, targetTable, idColumn, clobColumn, gttName, query, null, null, false);
   }
 
   /**
@@ -45,6 +46,6 @@ public record DBConfig(
   public DBConfig(String user, String password, String dsn, String targetTable,
       String idColumn, String clobColumn, String gttName, String query, String filenameColumn) {
     this(user, password, dsn, targetTable, idColumn, clobColumn, gttName, query, filenameColumn,
-        null);
+        null, false);
   }
 }

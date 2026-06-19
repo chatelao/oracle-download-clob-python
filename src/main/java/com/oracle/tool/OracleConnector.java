@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.List;
+import java.util.Properties;
 import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -37,8 +38,14 @@ public class OracleConnector implements AutoCloseable {
     this.config = config;
     this.cachedUpdateSql = null;
     String url = "jdbc:oracle:thin:@" + config.dsn();
+    Properties props = new Properties();
+    props.setProperty("user", config.user());
+    props.setProperty("password", config.password());
+    if (config.disableFan()) {
+      props.setProperty("oracle.jdbc.fanEnabled", "false");
+    }
     try {
-      this.conn = DriverManager.getConnection(url, config.user(), config.password());
+      this.conn = DriverManager.getConnection(url, props);
       this.conn.setAutoCommit(false);
     } catch (SQLException ex) {
       logger.error("Failed to connect to Oracle database: {}", ex.getMessage());
