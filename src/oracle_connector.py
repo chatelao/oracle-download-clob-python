@@ -76,7 +76,7 @@ class OracleConnector:
 
         columns = [f"t.{self.config.id_column}", f"t.{self.config.clob_column}"]
         if self.config.filename_column:
-            columns.append(f"t.{self.config.filename_column}")
+            columns.append(self.config.filename_column)
 
         sql = f"""
             SELECT {', '.join(columns)}

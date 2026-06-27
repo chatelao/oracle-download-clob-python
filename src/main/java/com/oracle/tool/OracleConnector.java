@@ -139,7 +139,7 @@ public class OracleConnector implements AutoCloseable {
 
     String columns = String.format("t.%s, t.%s", config.idColumn(), config.clobColumn());
     if (config.filenameColumn() != null && !config.filenameColumn().isEmpty()) {
-      columns += ", t." + config.filenameColumn();
+      columns += ", " + config.filenameColumn();
     }
 
     String sql = String.format(
