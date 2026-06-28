@@ -50,6 +50,29 @@ class OracleConnectorTest {
     }
 
     @Test
+    void fetchClobsJoin_WithFilenameExpression() throws SQLException {
+        config = new DBConfig("user", "pass", "dsn", "table", "id", "clob", "GTT_IDS", null, "substr(filename,1,8)");
+        try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
+            driverManagerMock.when(() -> DriverManager.getConnection(anyString(), any(Properties.class)))
+                    .thenReturn(connection);
+            connector.connect(config);
+
+            when(connection.createStatement()).thenReturn(statement);
+            when(statement.executeQuery(anyString())).thenReturn(resultSet);
+            when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+            when(resultSetMetaData.getColumnType(2)).thenReturn(Types.CLOB);
+            when(resultSet.next()).thenReturn(false);
+
+            connector.fetchClobsJoin().toList();
+
+            verify(statement).executeQuery(argThat(sql ->
+                sql.contains("SELECT t.id, t.clob, substr(filename,1,8)") &&
+                !sql.contains("t.substr(filename,1,8)")
+            ));
+        }
+    }
+
+    @Test
     void connect_Success() throws SQLException {
         try (MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class)) {
             driverManagerMock.when(() -> DriverManager.getConnection(anyString(), any(Properties.class)))
